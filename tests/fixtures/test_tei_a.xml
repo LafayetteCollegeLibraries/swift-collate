@@ -1,0 +1,36 @@
+<TEI xmlns="http://www.tei-c.org/ns/1.0" >
+  <teiHeader>
+    <fileDesc>
+      <titleStmt>
+	<title>The Strange Adventures of Dr. Burt Diddledygook: a machine-readable transcription</title>
+	<respStmt>
+	  <resp>editor</resp>
+	  <name xml:id="EV">Edward Vanhoutte</name>
+	</respStmt>
+      </titleStmt>
+      <publicationStmt>
+	<p>Not for distribution.</p>
+      </publicationStmt>
+      <sourceDesc>
+	<p>Transcribed from the diaries of the late Dr. Roy Offire.</p>
+      </sourceDesc>
+    </fileDesc>
+  </teiHeader>
+  <text xml:id="d1">
+    <body xml:id="d2">
+      <div1 type="book" xml:id="d3">
+	<head>Songs of Innocence</head>
+	<pb n="4"/>
+	<div2 type="poem" xml:id="d4">
+	  <head>Introduction</head>
+	  <lg n="1" type="stanza">
+	    <l n="1" >Piping down the valleys wild, </l>
+	    <l n="2" >Piping songs of pleasant glee, </l>
+	    <l n="3" >On a cloud I saw a child, </l>
+	    <l n="4" >And he laughing said to me: </l>
+	  </lg>
+	</div2>
+      </div1>
+    </body>
+  </text>
+</TEI>
