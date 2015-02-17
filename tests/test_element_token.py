@@ -33,8 +33,23 @@ class TestElementToken:
     def test_init(self, tei_stanza):
 
         tag = tei_stanza.xpath('local-name()')
-        token = ElementToken(tag, tei_stanza.attrib)
+        children = list(tei_stanza)
+
+        token = ElementToken(tag, tei_stanza.attrib, children, tei_stanza.text)
         assert token.name == 'lg'
         assert token.attrib['n'] == '1'
+
+        first_child_tag = token.children[0].xpath('local-name()')
+        assert first_child_tag == 'l'
+        assert token.text == "\n\t    "
+
+        token_b = ElementToken(doc=tei_stanza)
+        assert token_b.name == 'lg'
+        assert token_b.attrib['n'] == '1'
+
+        first_child_tag = token_b.children[0].xpath('local-name()')
+        assert first_child_tag == 'l'
+
+        assert token.text == "\n\t    "
 
         pass
