@@ -24,7 +24,7 @@ class ElementToken:
             children = list(doc)
             text = string.join(list(doc.itertext())) if doc.text is not None else ''
 
-            print etree.tostring(doc)
+            # print etree.tostring(doc)
 
         self.name = name
         self.attrib = attrib
@@ -191,10 +191,12 @@ class Tokenizer:
     # Construct the parse tree
     # Each element is a node distinct from the 
     @staticmethod
-    def parse(node):
+    def parse(node, name=''):
 
         # Initialize an undirected graph for the tree, setting the root node to the lxml node
         token_tree = nx.Graph()
+
+        token_tree.name = name
 
         # Footnotes are not to be removed, but instead, are to be appended following each line
 
@@ -269,8 +271,6 @@ class Tokenizer:
         # Introduce the penalty for stylistic or transcription elements
         # @todo This also requires some problematic restructuring of footnote and rendering elements (as these are *not* leaves)
 
-
-
         # text_token_edges = map(lambda token: (token_tree_root, TextToken(token)), text_tokens )
         text_token_edges = map(lambda token: (token_tree_root.value, token, { 'distance': init_dist }), text_tokens )
         # text_token_edges = map(lambda token: (token_tree_root, token), text_tokens )
@@ -290,16 +290,21 @@ class Tokenizer:
         for sub_tree in map(Tokenizer.parse, children):
 
             token_tree = nx.compose(token_tree, sub_tree)
+
         return token_tree
 
     @staticmethod
-    def diff(node_u, node_v):
+    def diff(node_u, text_u_id, node_v, text_v_id):
 
-        tree_u = Tokenizer.parse(node_u)
-        tree_v = Tokenizer.parse(node_v)
+        tree_u = Tokenizer.parse(node_u, text_u_id)
+        # text_u_id = tree_u.name
 
-        print tree_u.edges()
-        print tree_v.edges()
+        # @todo Refactor for a list of variants
+        tree_v = Tokenizer.parse(node_v, text_v_id)
+        # text_v_id = tree_v.name
+
+#        print tree_u.edges()
+#        print tree_v.edges()
 
         diff_tree = nx.Graph()
 
@@ -341,8 +346,8 @@ class Tokenizer:
                 text_node_v = string.join(text_nodes_v)
                 nodes_v_dist = tree_v[elem_node_u][text_node_v]['distance']
 
-                print text_node_u
-                print text_node_v
+#                print text_node_u
+#                print text_node_v
 
                 # Default to Punkt
                 # tokenizer = PunktWordTokenizer()
@@ -350,7 +355,12 @@ class Tokenizer:
                 # Just add the edit distance
                 edit_dist = nodes_u_dist + nodes_v_dist + nltk.metrics.distance.edit_distance(text_node_u, text_node_v)
                 
-                diff_tree.add_edge(elem_node_u, text_node_u, distance=edit_dist)
+                # Note: This superimposes the TEI structure of the base text upon all witnesses classified as variants
+                # Add an edge between the base element and the base text
+                diff_tree.add_edge(elem_node_u, text_node_u, distance=0, witness=text_u_id)
+
+                # Add an additional edge between the base element and the base text
+                diff_tree.add_edge(elem_node_u, text_node_v, distance=edit_dist, witness=text_v_id)
                 pass
 
             pass
