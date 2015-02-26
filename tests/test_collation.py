@@ -29,22 +29,28 @@ class TestCollation:
 
         collation = Collation(diff_tree)
 
-    def test_dict(self, diff_tree):
+    def test_values(self, diff_tree):
 
         collation = Collation(diff_tree)
-        collation_dict = collation.to_dict()
+        collation_values = collation.values()
 
-        # print collation_dict
+        # print collation_values
 
-        row_a = collation_dict[1]
+        row_a = collation_values[1]
         base_text_a = row_a[0]
 
         assert base_text_a['number'] == 1
         assert base_text_a['text'] == 'Piping down the valleys wild, '
         assert base_text_a['distance'] == 0
 
-        assert collation_dict[2][-1]['text'] == 'PIPING SONGS OF PLEASANT GLEE, '
-        assert collation_dict[2][-1]['distance'] == 24
+        assert collation_values[2][-1]['text'] == 'PIPING SONGS OF PLEASANT GLEE, '
+        assert collation_values[2][-1]['distance'] == 24
+
+    def test_str(self, diff_tree):
+
+        collation = Collation(diff_tree)
+        assert unicode(collation) == u"""{"1": [{"text": "Piping down the valleys wild, ", "number": 1, "witness": "u", "distance": 0}, {"text": "piping down the valleys wild, ", "number": 1, "witness": "v", "distance": 1}], "2": [{"text": "Piping songs of pleasant glee, ", "number": 2, "witness": "u", "distance": 0}, {"text": "PIPING SONGS OF PLEASANT GLEE, ", "number": 2, "witness": "v", "distance": 24}], "3": [{"text": "On a cloud I saw a child, ", "number": 3, "witness": "u", "distance": 0}, {"text": "On cloud I saw child ", "number": 3, "witness": "v", "distance": 5}], "4": [{"text": "And he laughing said to me: ", "number": 4, "witness": "u", "distance": 0}, {"text": "he laughing said me: ", "number": 4, "witness": "v", "distance": 7}]}"""
+        assert str(collation) == """{"1": [{"text": "Piping down the valleys wild, ", "number": 1, "witness": "u", "distance": 0}, {"text": "piping down the valleys wild, ", "number": 1, "witness": "v", "distance": 1}], "2": [{"text": "Piping songs of pleasant glee, ", "number": 2, "witness": "u", "distance": 0}, {"text": "PIPING SONGS OF PLEASANT GLEE, ", "number": 2, "witness": "v", "distance": 24}], "3": [{"text": "On a cloud I saw a child, ", "number": 3, "witness": "u", "distance": 0}, {"text": "On cloud I saw child ", "number": 3, "witness": "v", "distance": 5}], "4": [{"text": "And he laughing said to me: ", "number": 4, "witness": "u", "distance": 0}, {"text": "he laughing said me: ", "number": 4, "witness": "v", "distance": 7}]}"""
 
     def test_table(self, diff_tree):
 

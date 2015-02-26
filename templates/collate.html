@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="col-md-12">
+          <h2>Collation of Witnesses</h2>
+          <p>Witnesses are organized by line, with each line being further tokenized using a select algorithm.</p>
+
+	  <table class="table table-striped">
+
+	    <thead>
+	      <th>Line Number</th>
+	      <th>Witness</th>
+	      <th>Line Text</th>
+	      <th>Edit Distance</th>
+	    </thead>
+
+	    <tbody>
+
+	      {% for row,values in collation.iteritems() %}
+
+	      {% for data in values %}
+	      <tr>
+	      <th scope="row">{{ row }}</th>
+	      <td>{{ escape(data['witness']) }}</td>
+	      <td>{{ escape(data['text']) }}</td>
+	      <td>{{ data['distance'] }}</td>
+	      </tr>
+	      {% end %}
+	      {% end %}
+	    </tbody>
+	  </table>
+        </div>
+      </div>
+{% end %}

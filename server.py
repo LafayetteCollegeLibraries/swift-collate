@@ -3,6 +3,9 @@ import os.path
 import tornado.ioloop
 import tornado.web
 
+from collation import Collation
+from tokenizer import Tokenizer
+
 from tornado.options import define, options, parse_command_line
 
 define("port", default=8888, help="run on the given port", type=int)
@@ -12,20 +15,44 @@ class CollateHandler(tornado.web.RequestHandler):
 
     def post(self):
 
-        uris = self.get_argument("uris")
+        witnesses = self.get_argument("witnesses")
+
+        uris = map(lambda witness: witness['uri'], witnesses)
+        ids = map(lambda witness: witness['id'], witnesses)
 
         # Retrieve the stanzas
         tei_stanza_u, tei_stanza_v = map(Tokenizer.parse_stanza, uris)
+        id_u, id_v = ids
 
         # Tokenize the stanzas
         tokenizer= Tokenizer()
-        diff_tree = Tokenizer.diff(tei_stanza_u, tei_stanza_v)
-        print diff_tree.edges()
+        diff_tree = Tokenizer.diff(tei_stanza_u, id_u, tei_stanza_v, id_v)
 
         # Generate the collation
         collated_set = Collation(diff_tree)
 
-        self.render("collate.html", collate=collated_set)
+        self.render("collate.html", collation=collated_set.values())
+
+    # For testing, remove for integration with Fedora Commons
+    def get(self):
+
+        uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['tests/fixtures/test_tei_a.xml', 'tests/fixtures/test_tei_b.xml'])
+        ids = ['u', 'v']
+
+        # Retrieve the stanzas
+        tei_stanza_u, tei_stanza_v = map(Tokenizer.parse_stanza, uris)
+        id_u, id_v = ids
+
+        # Tokenize the stanzas
+        tokenizer = Tokenizer()
+        diff_tree = Tokenizer.diff(tei_stanza_u, id_u, tei_stanza_v, id_v)
+
+        # Generate the collation
+        collated_set = Collation(diff_tree)
+
+        self.render("collate.html", collation=collated_set.values())
+
+        pass
 
 class MainHandler(tornado.web.RequestHandler):
 

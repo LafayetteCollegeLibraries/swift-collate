@@ -1,5 +1,6 @@
 
 import re
+import json
 
 class Collation:
 
@@ -79,9 +80,17 @@ class Collation:
         self._values = sorted_values
 
     # @todo Replace by implementing the protocol for a container
-    def to_dict(self):
+    def values(self):
 
         return self._values
+
+    def __unicode__(self):
+
+        return json.dumps(self.values())
+
+    def __str__(self):
+
+        return unicode(self)
 
     def table(self):
 
