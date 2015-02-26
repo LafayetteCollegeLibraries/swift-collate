@@ -87,7 +87,7 @@ class TestTokenizer:
         tokenizer = Tokenizer()
 
         diff_tree = Tokenizer.diff(tei_stanza_a, tei_stanza_b)
-        
+
         assert diff_tree['<l n="3" />']['On a cloud I saw a child, ']['distance'] == nltk.metrics.distance.edit_distance('On a cloud I saw a child, ', 'On cloud I saw child ')
 
     def test_struct_diff(self, tei_stanza_a, tei_stanza_c):
@@ -95,5 +95,19 @@ class TestTokenizer:
         tokenizer = Tokenizer()
         
         diff_tree = Tokenizer.diff(tei_stanza_a, tei_stanza_c)
-
+        # print diff_tree.edges()
+        # assert False
+        
         assert diff_tree['<l n="3" />']['On a cloud I saw a child, ']['distance'] == nltk.metrics.distance.edit_distance('On a cloud I saw a child, ', 'On a cloud I  saw  a child, ')
+        assert diff_tree['<l n="4" />']['And he laughing said to me: ']['distance'] == nltk.metrics.distance.edit_distance('And he laughing said to me: ', 'And he laughing said to me: ')
+
+    def test_parse_stanza(self):
+
+        tei_stanza = Tokenizer.parse_stanza(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/test_tei.xml'))
+
+        lg_elems = tei_stanza.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+        assert len(lg_elems) > 0
+
+        lg_elem = lg_elems.pop()
+
+        assert lg_elem.xpath('local-name()') == 'lg'
