@@ -34,17 +34,24 @@ class TestCollation:
         collation = Collation(diff_tree)
         collation_values = collation.values()
 
-        # print collation_values
+        print collation_values
+        print collation_values.keys()
+#        for row,values in collation_values.iteritems():
+            
+#            print 'trace'
+#            print [ line for line in values['line'] if 'line' in values ]
 
-        row_a = collation_values[1]
-        base_text_a = row_a[0]
+        print collation_values
+
+        row_a = collation_values['lines'][1]
+        base_text_a = row_a['line'][0]
 
         assert base_text_a['number'] == 1
         assert base_text_a['text'] == 'Piping down the valleys wild, '
         assert base_text_a['distance'] == 0
 
-        assert collation_values[2][-1]['text'] == 'PIPING SONGS OF PLEASANT GLEE, '
-        assert collation_values[2][-1]['distance'] == 24
+        assert collation_values[2]['line'][-1]['text'] == 'PIPING SONGS OF PLEASANT GLEE, '
+        assert collation_values[2]['line'][-1]['distance'] == 24
 
     def test_str(self, diff_tree):
 

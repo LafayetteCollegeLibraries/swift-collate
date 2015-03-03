@@ -1,5 +1,6 @@
 
 from nltk.tokenize.punkt import PunktWordTokenizer
+# from nltk.tokenize import TreebankWordTokenizer
 import networkx as nx
 import re
 import nltk
@@ -349,18 +350,56 @@ class Tokenizer:
 #                print text_node_u
 #                print text_node_v
 
-                # Default to Punkt
-                # tokenizer = PunktWordTokenizer()
-
                 # Just add the edit distance
                 edit_dist = nodes_u_dist + nodes_v_dist + nltk.metrics.distance.edit_distance(text_node_u, text_node_v)
                 
                 # Note: This superimposes the TEI structure of the base text upon all witnesses classified as variants
                 # Add an edge between the base element and the base text
-                diff_tree.add_edge(elem_node_u, text_node_u, distance=0, witness=text_u_id)
+                diff_tree.add_edge(elem_node_u, text_node_u, distance=0, witness=text_u_id, feature='line')
 
                 # Add an additional edge between the base element and the base text
-                diff_tree.add_edge(elem_node_u, text_node_v, distance=edit_dist, witness=text_v_id)
+                diff_tree.add_edge(elem_node_u, text_node_v, distance=edit_dist, witness=text_v_id, feature='line')
+
+                # Now, add the tokenized texts
+                # Default to the Treebank tokenizer
+                # text_tokenizer = TreebankWordTokenizer()
+                text_tokenizer = PunktWordTokenizer()
+                text_tokens_u = text_tokenizer.tokenize(text_node_u)
+                text_tokens_v = text_tokenizer.tokenize(text_node_v)
+
+                text_tokens_intersect = filter(lambda t: t in text_tokens_v, text_tokens_u)
+                text_tokens_diff_u = filter(lambda t: not t in text_tokens_v, text_tokens_u)
+                
+                print 'tokens in u'
+                print text_tokens_u
+
+                print 'tokens in u and v'
+                print text_tokens_intersect
+
+                # For tokens in both sets
+                for text_token in text_tokens_intersect:
+
+                    pos = text_tokens_u.index(text_token)
+                    diff_tree.add_edge(elem_node_u, text_token, distance=0, witness='base', feature='ngram', position=pos)
+
+                # @todo Refactor
+                for text_token in text_tokens_diff_u:
+
+                    pos = text_tokens_u.index(text_token)
+                    diff_tree.add_edge(elem_node_u, text_token, distance=0, witness=text_u_id, feature='ngram', position=pos)
+
+                text_tokens_diff_v = [t for t in text_tokens_v if not t in text_tokens_u]
+
+                print 'tokens in just v'
+                print text_tokens_diff_v
+
+                for text_token in text_tokens_diff_v:
+
+                    # Disjoint
+                    pos = text_tokens_v.index(text_token)
+                    diff_tree.add_edge(elem_node_u, text_token, distance=None, witness=text_v_id, feature='ngram', position=pos)
+
+
                 pass
 
             pass
