@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from nltk.tokenize.punkt import PunktWordTokenizer
 # from nltk.tokenize import TreebankWordTokenizer
@@ -10,7 +11,7 @@ from lxml import etree
 
 class TextToken:
 
-    def __init__(seltf, ngram):
+    def __init__(self, ngram):
 
         self.value = ngram
 
@@ -239,21 +240,26 @@ class Tokenizer:
         # Handling for typographic feature (e. g. <hi />) and editorial elements (e. g. <gap />)
         # Leave intact; Prefer transformation into HTML5 using XSL Stylesheets
 
-#        for feature in [{'xpath': '//tei:hi[@rend="italic"]', 'text_token': 'italic'}, {'xpath': '//tei:gap', 'text_token': 'gap'}]:
+        for feature in [{'xpath': '//tei:hi[@rend="italic"]', 'text_token': 'italic'}, {'xpath': '//tei:gap', 'text_token': 'gap'}]:
 
-#            feature_xpath = feature['xpath']
-#            feature_token = feature['text_token']
+            feature_xpath = feature['xpath']
+            feature_token = feature['text_token']
 
-#            for feature_element in node.xpath(feature_xpath, namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}):
+            for feature_element in node.xpath(feature_xpath, namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}):
             
                 # Ensure that all text trailing the feature_element element is preserved
-#                parent = feature_element.getparent()
-#                feature_element_text = '' if feature_element.text is None else feature_element.text
+                parent = feature_element.getparent()
+                feature_element_text = '' if feature_element.text is None else feature_element.text
 
-#                parent.text += " (" + feature_token + ") " + feature_element_text + " (" + feature_token + ") " + feature_element.tail
+                if feature_element_text:
+
+                    parent.text += u"«" + feature_token + u"»" + feature_element_text + u"«" + feature_token + u"»" + feature_element.tail
+                else:
+
+                    parent.text += u"«" + feature_token + u"»" + feature_element.tail
 
                 # Remove the feature_element itself
-#                feature_element.getparent().remove(feature_element)
+                feature_element.getparent().remove(feature_element)
         
 
         token_tree_root = ElementToken(doc=node)
@@ -355,10 +361,10 @@ class Tokenizer:
                 
                 # Note: This superimposes the TEI structure of the base text upon all witnesses classified as variants
                 # Add an edge between the base element and the base text
-                diff_tree.add_edge(elem_node_u, text_node_u, distance=0, witness=text_u_id, feature='line')
+                diff_tree.add_edge(elem_node_u, TextToken(text_node_u), distance=0, witness=text_u_id, feature='line')
 
                 # Add an additional edge between the base element and the base text
-                diff_tree.add_edge(elem_node_u, text_node_v, distance=edit_dist, witness=text_v_id, feature='line')
+                diff_tree.add_edge(elem_node_u, TextToken(text_node_v), distance=edit_dist, witness=text_v_id, feature='line')
 
                 # Now, add the tokenized texts
                 # Default to the Treebank tokenizer
@@ -367,39 +373,71 @@ class Tokenizer:
                 text_tokens_u = text_tokenizer.tokenize(text_node_u)
                 text_tokens_v = text_tokenizer.tokenize(text_node_v)
 
-                text_tokens_intersect = filter(lambda t: t in text_tokens_v, text_tokens_u)
-                text_tokens_diff_u = filter(lambda t: not t in text_tokens_v, text_tokens_u)
+                # Attempt to align the sequences (by adding gaps where necessary)
+                # Strip all tags and transform into the lower case
+                # Here is where the edit distance is to be inserted
+
+                # text_tokens_intersect = filter(lambda t: t in text_tokens_v, text_tokens_u)
+                text_tokens_intersect = [ (i,e) for (i,e) in enumerate(text_tokens_u) if i < len(text_tokens_v) and text_tokens_v[i] == e ]
+
+                # max_text_tokens = max(len(text_tokens_u), len(text_tokens_v))
+                # text_tokens_intersect = [''] * max_text_tokens
+                # text_tokens_diff_u = [''] * max_text_tokens
+
+                # text_tokens_diff_u = filter(lambda t: not t in text_tokens_v, text_tokens_u)
+                text_tokens_diff_u = [ (i,e) for (i,e) in enumerate(text_tokens_u) if i < len(text_tokens_v) and text_tokens_v[i] != e ]
                 
                 print 'tokens in u'
                 print text_tokens_u
+                print 'tokens in v'
+                print text_tokens_v
 
                 print 'tokens in u and v'
                 print text_tokens_intersect
+                print 'tokens in just u'
+                print text_tokens_diff_u
 
-                # For tokens in both sets
-                for text_token in text_tokens_intersect:
-
-                    pos = text_tokens_u.index(text_token)
-                    diff_tree.add_edge(elem_node_u, text_token, distance=0, witness='base', feature='ngram', position=pos)
-
-                # @todo Refactor
-                for text_token in text_tokens_diff_u:
-
-                    pos = text_tokens_u.index(text_token)
-                    diff_tree.add_edge(elem_node_u, text_token, distance=0, witness=text_u_id, feature='ngram', position=pos)
-
-                text_tokens_diff_v = [t for t in text_tokens_v if not t in text_tokens_u]
+                # text_tokens_diff_v = [t for t in text_tokens_v if not t in text_tokens_u]
+                text_tokens_diff_v = [ (i,e) for (i,e) in enumerate(text_tokens_v) if i < len(text_tokens_u) and text_tokens_u[i] != e ]
 
                 print 'tokens in just v'
                 print text_tokens_diff_v
 
-                for text_token in text_tokens_diff_v:
+                # Edges override the different tokens
+                # "line of tokens"
+                # |    \  \
+                # line of tokens
+
+                # For tokens in both sets
+                for pos,text_token in text_tokens_intersect:
+
+                    # print 'trace20'
+                    # print text_token
+
+                    # pos = text_tokens_u.index(text_token)
+                    # diff_tree.add_edge(elem_node_u, text_token, distance=0, witness='base', feature='ngram', position=pos)
+
+                    token = TextToken(text_token)
+                    diff_tree.add_edge(elem_node_u, token, distance=0, witness='base', feature='ngram', position=pos)
+
+                # @todo Refactor
+                for pos,text_token in text_tokens_diff_u:
+
+                    # pos = text_tokens_u.index(text_token)
+                    # diff_tree.add_edge(elem_node_u, '_' + text_token, distance=0, witness=text_u_id, feature='ngram', position=pos)
+
+                    token = TextToken(text_token)
+                    diff_tree.add_edge(elem_node_u, token, distance=0, witness=text_u_id, feature='ngram', position=pos)
+
+                # @todo Refactor
+                for pos,text_token in text_tokens_diff_v:
 
                     # Disjoint
-                    pos = text_tokens_v.index(text_token)
-                    diff_tree.add_edge(elem_node_u, text_token, distance=None, witness=text_v_id, feature='ngram', position=pos)
+                    # pos = text_tokens_v.index(text_token)
+                    # diff_tree.add_edge(elem_node_u, '__' + text_token, distance=None, witness=text_v_id, feature='ngram', position=pos)
 
-
+                    token = TextToken(text_token)
+                    diff_tree.add_edge(elem_node_u, token, distance=None, witness=text_v_id, feature='ngram', position=pos)
                 pass
 
             pass

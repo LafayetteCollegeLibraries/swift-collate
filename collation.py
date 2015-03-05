@@ -2,6 +2,8 @@
 import re
 import json
 
+from tokenizer import TextToken
+
 class Collation:
 
     html_doc = """
@@ -24,15 +26,27 @@ class Collation:
         i=0
         for u,v,data in self.tree.edges(data=True):
 
-            text = u if re.match(r'^<.+>$', v) else v
-            xml = v if text is u else u
+#            text_token = u if re.match(r'^<.+>$', v) else v
+            text_token = u if isinstance(u, TextToken) else v
+            xml = v if text_token is u else u
+
+            print type(u)
+            print isinstance(u, TextToken)
+            print type(v)
+            print text_token
+            print xml
+#            assert False
+
+
+
+                # Work-around implemented in order to ensure that each text node is unique
+                # text = re.sub(r'^__?', '', text)
+            text = text_token.value
+
 
             # Avoid all non-lines
             if re.match(r'^<[lp]\s', xml):
 
-#                print u
-#                print v
-#                print data
 
                 # self._values.append([])
 
@@ -44,6 +58,11 @@ class Collation:
                 else:
                     
                     n=i
+
+                print "\nngram tokens for " + str(n)
+                print u
+                print v
+                print data
 
                 feature = data['feature']
                 position = data['position'] if 'position' in data else None
@@ -59,6 +78,13 @@ class Collation:
                 # Structuring ngrams within any given line
                 if feature == 'ngram':
 
+                    if n == 2:
+                        print "\ntrace21"
+                        print witness
+                        print position
+                        print text
+
+
                     # Firstly, index all ngrams by their related witnesses
                     if witness in self._values['witnesses']:
 
@@ -73,7 +99,7 @@ class Collation:
                         # Ensure that each line has ngrams related to it
                         if not feature in self._values['lines'][n]:
                             
-                            self._values['lines'][n][feature] = {witness: { position: text }}
+                            self._values['lines'][n][feature] = { witness: { position: text } }
 
                         # print 'trace10'
                         # print position
@@ -85,9 +111,9 @@ class Collation:
                         else:
 
                             # Prepend any missing tokens
-                            if position > 0 and not position - 1 in self._values['lines'][n][feature][witness]:
+                            # if position > 0 and not position - 1 in self._values['lines'][n][feature][witness]:
 
-                                self._values['lines'][n][feature][witness][position - 1] = ''
+                            #    self._values['lines'][n][feature][witness][position - 1] = ''
 
                             self._values['lines'][n][feature][witness][position] = text
                     else:
@@ -95,8 +121,9 @@ class Collation:
                         self._values['lines'][n] = { feature: { witness: { position: text } } }
 
                 else:
+                    # All other features within any given line
 
-                    print 'trace6'
+                    # print 'trace6'
 
                     # Each line contains multiple witnesses
                     if n in self._values['lines']:
@@ -112,7 +139,7 @@ class Collation:
                             
                             # print self._values
  
-                            print n
+                            # print n
                             # self._values[n] = (rows,)
                             
                             # self._values[n] = [rows]
@@ -129,7 +156,7 @@ class Collation:
 
 #        print 'trace3'
 #        print self._values.keys()
-#        print self._values
+        print self._values['lines'][2]['ngram']
 #        print 'trace4'
 
         # Sort by the n index
@@ -174,12 +201,12 @@ class Collation:
                             
                             if feature == 'ngram':
 
-                                print 'trace9'
-                                print doc_feature
-                                print n
-                                print feature
+                                # print 'trace9'
+                                # print doc_feature
+                                # print n
+                                # print feature
 
-                                print row
+                                # print row
 
                                 if doc_feature == 'lines':
                                     
