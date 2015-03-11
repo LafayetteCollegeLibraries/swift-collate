@@ -27,8 +27,13 @@
 	    <l n="1" >piping down the valleys wild, </l>
 	    <l n="2" >PIPING SONGS OF PLEASANT GLEE, </l>
 	    <l n="3" >On cloud I saw child </l>
-	    <l n="4" >he laughing said me: </l>
 	  </lg>
+	  <lg n="2" type="stanza">
+	    <l n="5">Once on a Time, near <hi rend="underline">Channel-Row</hi>,</l>
+	  </lg>
+
+
+
 	</div2>
       </div1>
     </body>

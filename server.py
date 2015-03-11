@@ -36,7 +36,7 @@ class CollateHandler(tornado.web.RequestHandler):
     # For testing, remove for integration with Fedora Commons
     def get(self):
 
-        uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['tests/fixtures/test_tei_a.xml', 'tests/fixtures/test_tei_c.xml'])
+        uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['tests/fixtures/test_tei_a.xml', 'tests/fixtures/test_tei_b.xml'])
         ids = ['u', 'v']
 
         # Retrieve the stanzas

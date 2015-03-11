@@ -30,23 +30,12 @@ class Collation:
             text_token = u if isinstance(u, TextToken) else v
             xml = v if text_token is u else u
 
-            print type(u)
-            print isinstance(u, TextToken)
-            print type(v)
-            print text_token
-            print xml
-#            assert False
-
-
-
-                # Work-around implemented in order to ensure that each text node is unique
-                # text = re.sub(r'^__?', '', text)
+            # Work-around implemented in order to ensure that each text node is unique
+            # text = re.sub(r'^__?', '', text)
             text = text_token.value
-
 
             # Avoid all non-lines
             if re.match(r'^<[lp]\s', xml):
-
 
                 # self._values.append([])
 
@@ -58,11 +47,6 @@ class Collation:
                 else:
                     
                     n=i
-
-                print "\nngram tokens for " + str(n)
-                print u
-                print v
-                print data
 
                 feature = data['feature']
                 position = data['position'] if 'position' in data else None
@@ -77,13 +61,6 @@ class Collation:
 
                 # Structuring ngrams within any given line
                 if feature == 'ngram':
-
-                    if n == 2:
-                        print "\ntrace21"
-                        print witness
-                        print position
-                        print text
-
 
                     # Firstly, index all ngrams by their related witnesses
                     if witness in self._values['witnesses']:
@@ -156,7 +133,7 @@ class Collation:
 
 #        print 'trace3'
 #        print self._values.keys()
-        print self._values['lines'][2]['ngram']
+#        print self._values['lines'][2]['ngram']
 #        print 'trace4'
 
         # Sort by the n index

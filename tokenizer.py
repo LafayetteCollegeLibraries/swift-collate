@@ -240,7 +240,10 @@ class Tokenizer:
         # Handling for typographic feature (e. g. <hi />) and editorial elements (e. g. <gap />)
         # Leave intact; Prefer transformation into HTML5 using XSL Stylesheets
 
-        for feature in [{'xpath': '//tei:hi[@rend="italic"]', 'text_token': 'italic'}, {'xpath': '//tei:gap', 'text_token': 'gap'}]:
+        for feature in [{'xpath': '//tei:hi[@rend="italic"]', 'text_token': 'italic'},
+                        {'xpath': '//tei:hi[@rend="display-initial"]', 'text_token': 'display-initial'},
+                        {'xpath': '//tei:hi[@rend="underline"]', 'text_token': 'underline'},
+                        {'xpath': '//tei:gap', 'text_token': 'gap'}]:
 
             feature_xpath = feature['xpath']
             feature_token = feature['text_token']
@@ -250,6 +253,13 @@ class Tokenizer:
                 # Ensure that all text trailing the feature_element element is preserved
                 parent = feature_element.getparent()
                 feature_element_text = '' if feature_element.text is None else feature_element.text
+
+                # print etree.tostring(feature_element)
+                # print parent.text
+                # print feature_element_text
+
+                # Work-around for lxml
+                if parent.text is None: parent.text = ''
 
                 if feature_element_text:
 
@@ -347,7 +357,17 @@ class Tokenizer:
                 elem_node_u = v if u == text_node_u else u
                 nodes_u_dist = data['distance']
 
+#                if elem_node_u not in tree_v:
+
+#                    continue
+                
                 # Retrieve the same text node from the second tree
+
+                # 
+                if not elem_node_u in tree_v:
+
+                    continue
+
                 text_nodes_v = tree_v[elem_node_u].keys()
                 
                 text_node_v = string.join(text_nodes_v)
@@ -376,6 +396,39 @@ class Tokenizer:
                 # Attempt to align the sequences (by adding gaps where necessary)
                 # Strip all tags and transform into the lower case
                 # Here is where the edit distance is to be inserted
+
+                # @todo Implement the sequence alignment
+                # Retrieve the longest string
+                text_align_base = max(text_tokens_u, text_tokens_v)
+                text_align_witness = text_tokens_u if text_align_base is text_tokens_u else text_tokens_v
+
+                # Look ahead by one (and only one) character
+                # @todo Refactor for more complex matching schemes?
+                for i, base_token in enumerate(text_align_base):
+
+                    if i == 0: continue
+
+                    witness_token = text_align_witness[i - 1]
+
+                    # Strip all tags
+                    base_token = re.sub(r'', '', base_token)
+
+                    # Cast into the lower case
+                    base_token = base_token.lower()
+
+                    # Strip all leading and trailing whitespace
+                    base_token = base_token.strip()
+
+                    # Compare the actual text data itself
+                    edit_dist = nltk.metrics.distance.edit_distance(base_token, witness_token)
+                    if edit_dist == 0:
+
+                        # 
+
+                        pass
+                    
+                    
+                    pass
 
                 # text_tokens_intersect = filter(lambda t: t in text_tokens_v, text_tokens_u)
                 text_tokens_intersect = [ (i,e) for (i,e) in enumerate(text_tokens_u) if i < len(text_tokens_v) and text_tokens_v[i] == e ]
