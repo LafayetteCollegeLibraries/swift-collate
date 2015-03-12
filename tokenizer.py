@@ -50,7 +50,8 @@ class ElementToken:
             pass
         elif self.name == 'l':
 
-            self.value = '<' + parent_name + '/' + self.name
+            # self.value = '<' + parent_name + '/' + self.name
+            self.value = '<' + self.name
             attribs = [(k,v) for (k,v) in attrib.iteritems() if k == 'n']
             pass
         else:
@@ -320,13 +321,14 @@ class Tokenizer:
 
                 # Work-around for lxml
                 if parent.text is None: parent.text = ''
+                feature_element_tail = '' if feature_element.tail is None else feature_element.tail
 
                 if feature_element_text:
 
-                    parent.text += u"«" + feature_token + u"»" + feature_element_text + u"«" + feature_token + u"»" + feature_element.tail
+                    parent.text += u"«" + feature_token + u"»" + feature_element_text + u"«" + feature_token + u"»" + feature_element_tail
                 else:
 
-                    parent.text += u"«" + feature_token + u"»" + feature_element.tail
+                    parent.text += u"«" + feature_token + u"»" + feature_element_tail
 
                 # Remove the feature_element itself
                 feature_element.getparent().remove(feature_element)
@@ -452,15 +454,34 @@ class Tokenizer:
                 text_node_v = string.join(text_nodes_v)
 
                 # If the text node has not been linked to the <l> node, attempt to match using normalization
+
+#                nodes_v_dist = 0
+#                if not text_node_v in tree_v[elem_node_u]:
+
+#                    text_node_v = text_node_v.strip()
+#                    text_node_v_norm = re.sub(r'\s+', '', text_node_v)
+
+#                    for text_node_u in tree_v[elem_node_u].keys():
+
+#                        text_node_u_norm = re.sub(r'\s+', '', text_node_u)
+#                        if text_node_v_norm == text_node_u_norm:
+
+#                            nodes_v_dist = tree_v[elem_node_u][text_node_u]['distance']
+
+#                    if not text_node_v in tree_v[elem_node_u]:
+
+#                        nodes_v_dist = 0
+#                    if nodes_v_dist is None:
+
+#                        raise Exception('Could not match the variant text string :"' + text_node_v + '" to those in the base: ' + string.join(tree_v[elem_node_u].keys()) )
+#                else:
+
                 if not text_node_v in tree_v[elem_node_u]:
 
-                    text_node_v = text_node_v.strip()
+                    nodes_v_dist = 0
+                else:
 
-                    if not text_node_v in tree_v[elem_node_u]:
-
-                        raise Exception('Could not match the variant text string :"' + text_node_v + '" to those in the base: ' + string.join(tree_v[elem_node_u].keys()) )
-
-                nodes_v_dist = tree_v[elem_node_u][text_node_v]['distance']
+                    nodes_v_dist = tree_v[elem_node_u][text_node_v]['distance']
 
                 # Just add the edit distance
                 edit_dist = nodes_u_dist + nodes_v_dist + nltk.metrics.distance.edit_distance(text_node_u, text_node_v)
@@ -483,39 +504,83 @@ class Tokenizer:
                 # Strip all tags and transform into the lower case
                 # Here is where the edit distance is to be inserted
 
-                # @todo Implement the sequence alignment
-                # Retrieve the longest string
-                text_align_base = max(text_tokens_u, text_tokens_v)
-                text_align_witness = text_tokens_u if text_align_base is text_tokens_u else text_tokens_v
+                text_tokens_u_len = len(text_tokens_u)
+                text_tokens_v_len = len(text_tokens_v)
 
-                # Look ahead by one (and only one) character
-                # @todo Refactor for more complex matching schemes?
-                for i, base_token in enumerate(text_align_base):
+                # if min(text_tokens_u_len, text_tokens_v_len) > 0 and text_tokens_u_len != text_tokens_v_len:
+                if min(text_tokens_u_len, text_tokens_v_len) > 0:
 
-                    if i == 0: continue
+                    # @todo Implement the sequence alignment
+                    # Retrieve the longest string
+                    # text_align_base = max(text_tokens_u, text_tokens_v)
+                    # text_align_witness = text_tokens_v if text_align_base is text_tokens_u else text_tokens_u
 
-                    witness_token = text_align_witness[i - 1]
-
-                    # Strip all tags
-                    base_token = re.sub(r'', '', base_token)
-
-                    # Cast into the lower case
-                    base_token = base_token.lower()
-
-                    # Strip all leading and trailing whitespace
-                    base_token = base_token.strip()
-
-                    # Compare the actual text data itself
-                    edit_dist = nltk.metrics.distance.edit_distance(base_token, witness_token)
-                    if edit_dist == 0:
-
-                        # 
-
-                        pass
+                    # for text_align_base, text_align_witness, j in [ (text_tokens_u, text_tokens_v, 1), (text_tokens_v, text_tokens_u, -1) ]:
+                    for text_align_base, text_align_witness, j in [ (text_tokens_u, text_tokens_v, -1), (text_tokens_u, text_tokens_v, 1) ]:
+                    # for text_align_base, text_align_witness in [ (text_tokens_u, text_tokens_v) ]:
                     
-                    
-                    pass
+                        # print len(text_tokens_u)
+                        # print len(text_tokens_v)
+                        # print text_align_base
+                        # print text_align_witness
+                        
+                        # Look ahead by multiple tokens
+                        # @todo Refactor for more complex matching schemes?
+                        for i, base_token in enumerate(text_align_base):
+                            
+                            # Offset of 1
+                            if i == 0 or i + j >= len(text_align_witness): continue
+                            
+                            witness_token = text_align_witness[i + j]
+                            
+                            # Strip all tags
+                            base_token = re.sub(r'', '', base_token)
+                            
+                        # Cast into the lower case
+                            base_token = base_token.lower()
+                            
+                        # Strip all leading and trailing whitespace
+                            base_token = base_token.strip()
+                            
+                            witness_token = re.sub(r'', '', witness_token).lower().strip()
+                            
+                        # Compare the actual text data itself
+                            edit_dist = nltk.metrics.distance.edit_distance(base_token, witness_token)
+                            if edit_dist == 0:
+                                
+                                # Insert an empty token into the position at i within the witness
+                                # list1[0:i-1] + [''] + list1[i-1:]
+                                # print text_align_witness[0:i - 2]
+                                # print text_align_witness[i - 2]
+                                
+                                # This should be implemented using modular arithmetic
+                                if i == 1:
 
+                                    if j == -1:
+                                    
+                                        text_align_witness = [''] + text_align_witness
+                                    else:
+
+                                        text_align_witness = text_align_witness[1:] + [ text_align_witness[0] ]
+                                else:
+                                    
+                                    text_align_witness = text_align_witness[0:i + j + j] + [''] + text_align_witness[i + j + j:]
+                                    
+                                print text_align_base
+                                print text_align_witness
+                                    
+                        # Swap into place
+                        # Should this be necessary?
+                        text_tokens_u = text_align_base if text_align_base is text_tokens_u else text_tokens_v
+                        text_tokens_v = text_align_witness if text_align_base is text_tokens_u else text_tokens_u
+
+                        # print text_tokens_u
+                        # print text_tokens_v
+
+                # print [ (i,e) for (i,e) in enumerate(text_tokens_u) ]
+                # print [ (i,e) for (i,e) in enumerate(text_tokens_v) ]
+                # print enumerate(text_tokens_v)
+                                    
                 # text_tokens_intersect = filter(lambda t: t in text_tokens_v, text_tokens_u)
                 text_tokens_intersect = [ (i,e) for (i,e) in enumerate(text_tokens_u) if i < len(text_tokens_v) and text_tokens_v[i] == e ]
 
@@ -557,7 +622,7 @@ class Tokenizer:
                     # diff_tree.add_edge(elem_node_u, text_token, distance=0, witness='base', feature='ngram', position=pos)
 
                     token = TextToken(text_token)
-                    diff_tree.add_edge(elem_node_u, token, distance=0, witness='base', feature='ngram', position=pos)
+                    diff_tree.add_edge(elem_node_u, token, distance=0, witness='common', feature='ngram', position=pos)
 
                 # @todo Refactor
                 for pos,text_token in text_tokens_diff_u:

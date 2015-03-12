@@ -36,21 +36,23 @@ class Collation:
 
             # Avoid all non-lines
             # <lg/l n="2" />
-            if re.match(r'^<lg\sn="\d+"/[lp]\s', xml):
+            # if re.match(r'^<lg\sn="\d+"/[lp]\s', xml):
+            if re.match(r'^<[lp]\s', xml):
 
                 # self._values.append([])
 
                 # Be certain to index using the @n attribute
                 # <lg/l n="2" />
-                # n_match = re.match(r'^<[lp]\sn="(\d+)"', xml)
-                n_match = re.match(r'^<lg\sn="(\d+)"/[lp]\sn="(\d+)"', xml)
-
+                n_match = re.match(r'^<[lp]\sn="(\d+)"', xml)
+                # n_match = re.match(r'^<lg\sn="(\d+)"/[lp]\sn="(\d+)"', xml)
+                
                 if n_match:
 
-                    stanza_n = int(n_match.group(1))
-                    line_n = int(n_match.group(2))
-                    # n = stanza_n + line_n * 0.1
-                    n = int(n_match.group(2))
+                    # stanza_n = int(n_match.group(1))
+                    # line_n = int(n_match.group(2))
+                    # n = int(n_match.group(2))
+
+                    n = int(n_match.group(1))
                 else:
                     
                     n=i

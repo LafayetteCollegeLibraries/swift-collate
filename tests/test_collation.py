@@ -58,6 +58,22 @@ class TestCollation:
 
         return diff_tree
 
+    @pytest.fixture()
+    def stemma_alignment(self, request):
+
+        file_paths = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['fixtures/test_tei_d.xml', 'fixtures/test_tei_e.xml', 'fixtures/test_tei_f.xml'])
+
+        # tei_stanzas = map(Tokenizer.parse_stanza, file_paths)
+        tei_stanzas = map(Tokenizer.parse_text, file_paths)
+
+        base_text = tei_stanzas.pop()
+
+        witnesses = [ { 'node': tei_stanzas[0], 'id': 'v' }, { 'node': tei_stanzas[1], 'id': 'w' } ]
+
+        diff_tree = Tokenizer.stemma({ 'node': base_text, 'id': 'u' }, witnesses)
+
+        return diff_tree
+
     def test_init(self, diff_tree):
 
         collation = Collation(diff_tree)
@@ -72,9 +88,19 @@ class TestCollation:
         line_1 = lines[1]
 
         # print line_1['ngram']
+        # print line_1['line']
+        # assert False
 
-        print line_1['line']
-        assert False
+    def test_stemma_alignment(self, stemma_alignment):
+
+        collation = Collation(stemma_alignment)
+        collation_values = collation.values()
+
+        lines = collation_values['lines']
+
+        line_1 = lines[1]
+        assert line_1['ngram']['common'] == ['Piping', 'down', 'the', 'valleys', 'wild', ',']
+
 
     def test_values(self, diff_tree, diff_tree_tags):
 

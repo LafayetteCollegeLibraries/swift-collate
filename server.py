@@ -38,27 +38,41 @@ class CollateHandler(tornado.web.RequestHandler):
     # For testing, remove for integration with Fedora Commons
     def get(self):
 
-        uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['tests/fixtures/test_tei_a.xml', 'tests/fixtures/test_tei_b.xml', 'tests/fixtures/test_tei_c.xml'])
-        ids = ['u', 'v', 'w']
+        uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['tests/fixtures/test_swift_36629.xml',
+                                                                                                 'tests/fixtures/test_swift_36670.xml',
+                                                                                                 'tests/fixtures/test_swift_36711.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_36752.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_36793.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_40916.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_40267.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_39876.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_39573.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_39477.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_37660.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_37602.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_36992.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_36940.tei.xml',
+                                                                                                 'tests/fixtures/test_swift_36834.tei.xml',
+                                                                                                 ])
+        ids = map(str, range(1, len(uris)))
 
         # Retrieve the stanzas
-        tei_stanza_u, tei_stanza_v, tei_stanza_w = map(Tokenizer.parse_text, uris)
-        id_u, id_v, id_w = ids
+        texts = map(Tokenizer.parse_text, uris)
 
-        # Tokenize the stanzas
-        # tokenizer = Tokenizer()
-        # diff_tree = Tokenizer.diff(tei_stanza_u, id_u, tei_stanza_v, id_v)
+        base_text = texts[0]
+        texts = texts[1:]
 
-        base_text = { 'node': tei_stanza_u, 'id': 'u' }
-        witnesses = [ { 'node': tei_stanza_v, 'id': 'v' }, { 'node': tei_stanza_w, 'id': 'w' } ]
+        # base_text = { 'node': tei_stanza_u, 'id': 'u' }
+        # witnesses = [ { 'node': tei_stanza_v, 'id': 'v' }, { 'node': tei_stanza_w, 'id': 'w' } ]
+        witnesses = []
+        for node, _id in zip(texts, ids):
 
-        stemma = Tokenizer.stemma(base_text, witnesses)
+            witnesses.append( { 'node': node, 'id': _id } )
+
+        stemma = Tokenizer.stemma({ 'node': base_text, 'id': 'base' }, witnesses)
 
         # Generate the collation
         collated_set = Collation(stemma)
-        
-        # print collated_set.values()['lines'][1].keys()
-#        collation = collated_set.values()
         
 #        for row,values in collation['lines'].iteritems():
 
