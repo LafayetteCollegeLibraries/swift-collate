@@ -26,6 +26,13 @@ class ElementToken:
             children = list(doc)
             text = string.join(list(doc.itertext())) if doc.text is not None else ''
 
+            # Work-around
+            parents = doc.xpath('..')
+            parent = parents.pop()
+
+            # parent_name = parent.xpath('local-name()')
+            parent_name = parent.xpath('local-name()') + ' n="' + parent.get('n') + '"' if name == 'l' else parent.xpath('local-name()')
+
             # print etree.tostring(doc)
 
         self.name = name
@@ -34,9 +41,26 @@ class ElementToken:
         # Generate a string consisting of the element name and concatenated attributes (for comparison using the edit distance)
         # Note: the attributes *must* be order by some arbitrary feature
 
-        self.value = '<' + self.name
-        for attrib_name, attrib_value in self.attrib.iteritems():
-            
+        # Work-around for the generation of normalized keys (used during the collation process)
+        # @todo Refactor
+        if self.name == 'lg':
+
+            self.value = '<' + parent_name + '/' + self.name
+            attribs = [(k,v) for (k,v) in attrib.iteritems() if k == 'n']
+            pass
+        elif self.name == 'l':
+
+            self.value = '<' + parent_name + '/' + self.name
+            attribs = [(k,v) for (k,v) in attrib.iteritems() if k == 'n']
+            pass
+        else:
+
+            self.value = '<' + self.name
+            attribs = self.attrib.iteritems()
+
+        # Generate the key for the TEI element
+        for attrib_name, attrib_value in attribs:
+
             self.value += ' ' + attrib_name + '="' + attrib_value + '"'
         self.value += ' />'
 
@@ -178,6 +202,7 @@ class Tokenizer:
 
         pass
 
+    # Construct a Document sub-tree consisting solely of stanzas or paragraphs from any given TEI-encoded text
     @staticmethod
     def parse_stanza(resource):
 
@@ -190,8 +215,43 @@ class Tokenizer:
 
         return elem
 
-    # Construct the parse tree
-    # Each element is a node distinct from the 
+    @staticmethod
+    def parse_text(resource):
+
+        with open(resource) as f:
+
+            data = f.read()
+            doc = etree.fromstring(data)
+            elems = doc.xpath('//tei:text', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            elem = elems.pop()
+
+        return elem
+
+    # Construct the Document tree for tei:text elements
+    # The output is passed to either Tokenizer.diff() or Tokenizer.stemma()
+    # This deprecates Tokenizer.parse()
+    # The root node should have one or many <lg> child nodes
+    @staticmethod
+    def text_tree(text_node, name=''):
+
+        lg_nodes = text_node.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+
+        if not lg_nodes:
+
+            raise Exception("Could not retrieve any <lg> nodes for the following TEI <text> element: " + etree.tostring(text_node))
+
+        token_tree = nx.Graph()
+        token_tree.name = name
+
+        for lg_node in lg_nodes:
+
+            lg_tree = Tokenizer.parse(lg_node, name)
+            token_tree = nx.compose(token_tree, lg_tree)
+
+        return token_tree
+
+    # Construct the Document tree
+    # The root node should be a <lg> node
     @staticmethod
     def parse(node, name=''):
 
@@ -310,18 +370,36 @@ class Tokenizer:
 
         return token_tree
 
+    # Generates a stemmatic tree consisting of many witness TEI Documents in relation to a single base Document    
+    @staticmethod
+    def stemma(root_witness, witnesses): # Root text of the stemma
+
+        diff_tree = nx.Graph()
+
+        roots = [ root_witness ] * len(witnesses)
+        for text_u, text_v in zip(roots, witnesses):
+
+            node_u = text_u['node']
+            text_u_id = text_u['id']
+            node_v = text_v['node']
+            text_v_id = text_v['id']
+            
+            diff_u_v_tree = Tokenizer.diff(node_u, text_u_id, node_v, text_v_id)
+
+            diff_tree = nx.compose(diff_tree, diff_u_v_tree)
+
+        return diff_tree
+
+    # Generates a tree structuring the differences identified within two given TEI Documents
     @staticmethod
     def diff(node_u, text_u_id, node_v, text_v_id):
+        
+        # Each node serves as a <tei:text> element for the text being compared
+        tree_u = Tokenizer.text_tree(node_u, text_u_id)
+        text_u_id = tree_u.name if text_u_id is None else text_u_id
 
-        tree_u = Tokenizer.parse(node_u, text_u_id)
-        # text_u_id = tree_u.name
-
-        # @todo Refactor for a list of variants
-        tree_v = Tokenizer.parse(node_v, text_v_id)
-        # text_v_id = tree_v.name
-
-#        print tree_u.edges()
-#        print tree_v.edges()
+        tree_v = Tokenizer.text_tree(node_v, text_v_id)
+        text_v_id = tree_v.name if text_v_id is None else text_v_id
 
         diff_tree = nx.Graph()
 
@@ -337,6 +415,10 @@ class Tokenizer:
         # for edge in intersect_tree.edges(data=True):
         for u, v, data in tree_u.edges(data=True):
 
+#            print u
+#            print v
+#            print data
+
             # Only perform the edit distance for text nodes
             # edit_dist = nltk.metrics.distance(tree_u[u], tree_v[u])
             # (u, u, edit_dist)
@@ -350,31 +432,35 @@ class Tokenizer:
             elif len(text_nodes) == 0:
 
                 # Comparing elements
-                assert False
+                raise Exception("Structural comparison is not yet supported")
             else:
                 
                 text_node_u = string.join(text_nodes)
                 elem_node_u = v if u == text_node_u else u
                 nodes_u_dist = data['distance']
 
-#                if elem_node_u not in tree_v:
-
-#                    continue
-                
-                # Retrieve the same text node from the second tree
-
-                # 
+                # If there is no matching line within the stanza being compared, simply avoid the comparison altogether
+                # @todo Implement handling for addressing structural realignment between stanzas (this would likely lie within Tokenizer.parse_text)
                 if not elem_node_u in tree_v:
 
+                    print elem_node_u
+                    print tree_v.edges()
                     continue
 
                 text_nodes_v = tree_v[elem_node_u].keys()
                 
                 text_node_v = string.join(text_nodes_v)
-                nodes_v_dist = tree_v[elem_node_u][text_node_v]['distance']
 
-#                print text_node_u
-#                print text_node_v
+                # If the text node has not been linked to the <l> node, attempt to match using normalization
+                if not text_node_v in tree_v[elem_node_u]:
+
+                    text_node_v = text_node_v.strip()
+
+                    if not text_node_v in tree_v[elem_node_u]:
+
+                        raise Exception('Could not match the variant text string :"' + text_node_v + '" to those in the base: ' + string.join(tree_v[elem_node_u].keys()) )
+
+                nodes_v_dist = tree_v[elem_node_u][text_node_v]['distance']
 
                 # Just add the edit distance
                 edit_dist = nodes_u_dist + nodes_v_dist + nltk.metrics.distance.edit_distance(text_node_u, text_node_v)
@@ -440,21 +526,21 @@ class Tokenizer:
                 # text_tokens_diff_u = filter(lambda t: not t in text_tokens_v, text_tokens_u)
                 text_tokens_diff_u = [ (i,e) for (i,e) in enumerate(text_tokens_u) if i < len(text_tokens_v) and text_tokens_v[i] != e ]
                 
-                print 'tokens in u'
-                print text_tokens_u
-                print 'tokens in v'
-                print text_tokens_v
+#                print 'tokens in u'
+#                print text_tokens_u
+#                print 'tokens in v'
+#                print text_tokens_v
 
-                print 'tokens in u and v'
-                print text_tokens_intersect
-                print 'tokens in just u'
-                print text_tokens_diff_u
+#                print 'tokens in u and v'
+#                print text_tokens_intersect
+#                print 'tokens in just u'
+#                print text_tokens_diff_u
 
                 # text_tokens_diff_v = [t for t in text_tokens_v if not t in text_tokens_u]
                 text_tokens_diff_v = [ (i,e) for (i,e) in enumerate(text_tokens_v) if i < len(text_tokens_u) and text_tokens_u[i] != e ]
 
-                print 'tokens in just v'
-                print text_tokens_diff_v
+#                print 'tokens in just v'
+#                print text_tokens_diff_v
 
                 # Edges override the different tokens
                 # "line of tokens"

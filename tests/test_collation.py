@@ -18,7 +18,8 @@ class TestCollation:
 
         file_paths = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['fixtures/test_tei_a.xml', 'fixtures/test_tei_b.xml'])
         
-        tei_stanzas = map(Tokenizer.parse_stanza, file_paths)
+        # tei_stanzas = map(Tokenizer.parse_stanza, file_paths)
+        tei_stanzas = map(Tokenizer.parse_text, file_paths)
 
         # Work-around
         tei_stanza_u, tei_stanza_v = tei_stanzas[0:2]
@@ -41,61 +42,78 @@ class TestCollation:
 
         return diff_tree
 
+    @pytest.fixture()
+    def stemma(self, request):
+
+        file_paths = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['fixtures/test_tei_a.xml', 'fixtures/test_tei_b.xml', 'fixtures/test_tei_c.xml'])
+
+        tei_stanzas = map(Tokenizer.parse_stanza, file_paths)
+
+        base_text = tei_stanzas.pop()
+
+        witnesses = [ { 'node': tei_stanzas[0], 'id': 'u' }, { 'node': tei_stanzas[1], 'id': 'v' } ]
+
+        diff_tree = Tokenizer.stemma({ 'node': base_text, 'id': 'a' }, witnesses)
+
+        return diff_tree
+
     def test_init(self, diff_tree):
 
         collation = Collation(diff_tree)
+
+    def test_values_stemma(self, stemma):
+
+        collation = Collation(stemma)
+        collation_values = collation.values()
+
+        print collation_values
 
     def test_values(self, diff_tree, diff_tree_tags):
 
         collation = Collation(diff_tree)
         collation_values = collation.values()
 
-#        print collation_values
-#        print collation_values.keys()
-
-#        for row,values in collation_values.iteritems():
-            
-#            print 'trace'
-#            print [ line for line in values['line'] if 'line' in values ]
-
-#        print collation_values
-
-        row_a = collation_values['lines'][1]
+        row_a = collation_values['lines'][5]
         base_text_a = row_a['line'][0]
 
-        assert base_text_a['number'] == 1
-        assert base_text_a['text'] == 'Piping down the valleys wild, '
-        assert base_text_a['distance'] == 0
+        assert base_text_a['number'] == 5
 
-        row_b = collation_values['lines'][2]
-        base_text_b = row_b['line'][-1]
-
-        assert base_text_b['text'] == 'PIPING SONGS OF PLEASANT GLEE, '
-        assert base_text_b['distance'] == 24
-
-        # Testing for collations involving TEI tags
-        collation = Collation(diff_tree_tags)
-        collation_values = collation.values()
-
-        row_a = collation_values['lines'][1]
-        base_text_a = row_a['line'][0]
-
-        assert base_text_a['number'] == 1
-        assert base_text_a['text'] == 'Piping down the valleys wild, '
-        assert base_text_a['distance'] == 0
-
-        row_b = collation_values['lines'][2]
-        base_text_b = row_b['line'][-1]
-
-        assert base_text_b['text'] == u'Piping «gap» songs of pleasant glee, '
-        assert base_text_b['distance'] == 6
-
-        # Analyze the line ngram tokens
-        row_b_ngrams = row_b['ngram']
-
-        assert row_b_ngrams['base'] == ['Piping', '', '', '', '', '']
-        assert row_b_ngrams['v'] == ['', u'«gap»', 'songs', 'of', 'pleasant', 'glee']
-        assert row_b_ngrams['u'] == ['', 'songs', 'of', 'pleasant', 'glee', ',']
+#        row_a = collation_values['lines'][1]
+#        base_text_a = row_a['line'][0]
+#
+#        assert base_text_a['number'] == 1
+#        assert base_text_a['text'] == 'Piping down the valleys wild, '
+#        assert base_text_a['distance'] == 0
+#
+#        row_b = collation_values['lines'][2]
+#        base_text_b = row_b['line'][-1]
+#
+#        assert base_text_b['text'] == 'PIPING SONGS OF PLEASANT GLEE, '
+#        assert base_text_b['distance'] == 24
+#
+#        # Testing for collations involving TEI tags
+#        collation = Collation(diff_tree_tags)
+#        collation_values = collation.values()
+#
+#        row_a = collation_values['lines'][1]
+#        base_text_a = row_a['line'][0]
+#
+#        assert base_text_a['number'] == 1
+#        assert base_text_a['text'] == 'Piping down the valleys wild, '
+#        assert base_text_a['distance'] == 0
+#
+#        row_b = collation_values['lines'][2]
+#        base_text_b = row_b['line'][-1]
+#
+#        assert base_text_b['text'] == u'Piping «gap» songs of pleasant glee, '
+#        assert base_text_b['distance'] == 6
+#
+#        # Analyze the line ngram tokens
+#        row_b_ngrams = row_b['ngram']
+#
+#        assert row_b_ngrams['base'] == ['Piping', '', '', '', '', '']
+#        assert row_b_ngrams['v'] == ['', u'«gap»', 'songs', 'of', 'pleasant', 'glee']
+#        assert row_b_ngrams['u'] == ['', 'songs', 'of', 'pleasant', 'glee', ',']
 
     def test_str(self, diff_tree):
 

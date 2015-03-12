@@ -26,6 +26,8 @@ class CollateHandler(tornado.web.RequestHandler):
 
         # Tokenize the stanzas
         tokenizer= Tokenizer()
+
+        # diff_tree = Tokenizer.diff(tei_stanza_u, id_u, tei_stanza_v, id_v)
         diff_tree = Tokenizer.diff(tei_stanza_u, id_u, tei_stanza_v, id_v)
 
         # Generate the collation
