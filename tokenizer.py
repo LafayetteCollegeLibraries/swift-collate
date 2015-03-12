@@ -443,8 +443,8 @@ class Tokenizer:
                 # @todo Implement handling for addressing structural realignment between stanzas (this would likely lie within Tokenizer.parse_text)
                 if not elem_node_u in tree_v:
 
-                    print elem_node_u
-                    print tree_v.edges()
+                    # print elem_node_u
+                    # print tree_v.edges()
                     continue
 
                 text_nodes_v = tree_v[elem_node_u].keys()

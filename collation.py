@@ -127,7 +127,10 @@ class Collation:
                             # self._values[n] = (rows,)
                             
                             # self._values[n] = [rows]
-                            self._values['lines'][n][feature].append(rows)
+
+                            if self._values['lines'][n][feature].count(rows) == 0:
+
+                                self._values['lines'][n][feature].append(rows)
                             
                             #                print 'line: ' + str(n)
                             #                print self._values[n]

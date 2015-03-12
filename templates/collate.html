@@ -12,6 +12,7 @@
 	  {% if 'line' in values %}
 	  <h2>Line {{ row }}</h2>
 
+	  {% if 'ngram' in values %}
 	  <h3>Line Tokens</h3>
 	  <table class="table table-striped">
 	    <thead>
@@ -39,6 +40,7 @@
 	      {% end %}
 	    </tbody>
 	  </table>
+	  {% end %}
 
 	  <h3>Line Variation</h3>
 	  <table class="table table-striped">

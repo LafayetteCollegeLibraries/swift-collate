@@ -47,13 +47,14 @@ class TestCollation:
 
         file_paths = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['fixtures/test_tei_a.xml', 'fixtures/test_tei_b.xml', 'fixtures/test_tei_c.xml'])
 
-        tei_stanzas = map(Tokenizer.parse_stanza, file_paths)
+        # tei_stanzas = map(Tokenizer.parse_stanza, file_paths)
+        tei_stanzas = map(Tokenizer.parse_text, file_paths)
 
         base_text = tei_stanzas.pop()
 
-        witnesses = [ { 'node': tei_stanzas[0], 'id': 'u' }, { 'node': tei_stanzas[1], 'id': 'v' } ]
+        witnesses = [ { 'node': tei_stanzas[0], 'id': 'v' }, { 'node': tei_stanzas[1], 'id': 'w' } ]
 
-        diff_tree = Tokenizer.stemma({ 'node': base_text, 'id': 'a' }, witnesses)
+        diff_tree = Tokenizer.stemma({ 'node': base_text, 'id': 'u' }, witnesses)
 
         return diff_tree
 
@@ -66,7 +67,14 @@ class TestCollation:
         collation = Collation(stemma)
         collation_values = collation.values()
 
-        print collation_values
+        lines = collation_values['lines']
+
+        line_1 = lines[1]
+
+        # print line_1['ngram']
+
+        print line_1['line']
+        assert False
 
     def test_values(self, diff_tree, diff_tree_tags):
 
