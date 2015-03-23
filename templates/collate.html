@@ -28,12 +28,12 @@
 
 	    <tbody>
 
-	      {% for line_ngram_witness, line_ngrams in values['ngram'].iteritems() %}
+	      {% for line_ngram_values in values['ngrams_sorted'] %}
 
 	      <tr>
-		<th scope="row">{{ line_ngram_witness }}</th>
+		<th scope="row">{{ line_ngram_values['witness'] }}</th>
 
-	      {% for line_ngram in line_ngrams %}
+	      {% for line_ngram in line_ngram_values['line_ngrams'] %}
 
 		<td>{{ line_ngram }}</td>
 	      {% end %}

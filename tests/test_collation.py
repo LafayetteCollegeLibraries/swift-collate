@@ -98,9 +98,27 @@ class TestCollation:
 
         lines = collation_values['lines']
 
+        # One extraneous token
         line_1 = lines[1]
-        assert line_1['ngram']['common'] == ['Piping', 'down', 'the', 'valleys', 'wild', ',']
+        # assert line_1['ngram']['common'] == ['Piping', 'down', 'the', 'valleys', 'wild', ',']
+        # print str(line_1) + "\n"
 
+        # Two additional tokens
+        line_3 = lines[3]
+
+        assert line_3['ngram']['common'] == ['On', 'a', 'cloud', 'I', 'saw', 'a', 'child', ',']
+        # print str(line_3) + "\n"
+        
+        assert line_3['line'][2]['text'] == 'On Lorem a cloud I saw a amet child, '
+
+        # One token at a distance of 2 steps
+        line_4 = lines[4]
+
+        # assert line_4['ngram']['common'] == ['And', 'he', 'laughing', 'said', 'to', 'me', ':']
+        # print str(line_4) + "\n"
+
+        assert False
+        
 
     def test_values(self, diff_tree, diff_tree_tags):
 

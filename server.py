@@ -54,7 +54,22 @@ class CollateHandler(tornado.web.RequestHandler):
                                                                                                  'tests/fixtures/test_swift_36940.tei.xml',
                                                                                                  'tests/fixtures/test_swift_36834.tei.xml',
                                                                                                  ])
-        ids = map(str, range(1, len(uris)))
+        # ids = map(str, range(1, len(uris)))
+        ids = ["R56503P1",
+               "R56503P2",
+               "R56503P3",
+               "R56503P4",
+               "R56503P5",
+               "R56503P7",
+               "R56504M1",
+               "R56504M2",
+               "R56506E2",
+               "R56506H1",
+               "R56528D-",
+               "R56532D-",
+               "R56539D-",
+               "R565760L",
+               "R565ROGP"]
 
         # Retrieve the stanzas
         texts = map(Tokenizer.parse_text, uris)

@@ -9,11 +9,17 @@ import string
 from copy import deepcopy
 from lxml import etree
 
+from difflib import ndiff
+
 class TextToken:
 
     def __init__(self, ngram):
 
         self.value = ngram
+
+    def __str__(self):
+
+        return self.value
 
 class ElementToken:  
 
@@ -47,13 +53,27 @@ class ElementToken:
 
             self.value = '<' + parent_name + '/' + self.name
             attribs = [(k,v) for (k,v) in attrib.iteritems() if k == 'n']
+
             pass
         elif self.name == 'l':
 
-            # self.value = '<' + parent_name + '/' + self.name
-            self.value = '<' + self.name
+            self.value = '<' + parent_name + '/' + self.name
+            # self.value = '<' + self.name
             attribs = [(k,v) for (k,v) in attrib.iteritems() if k == 'n']
-            pass
+
+            # Insert the identation values for the rendering
+            if 'rend' in attrib:
+
+                rend = attrib['rend']
+                indent_match = re.match(r'indent\((\d)\)', rend)
+                if indent_match:
+
+                    indent_value = int(indent_match.group(1))
+                    indent_tokens = [u"«indent»"] * indent_value
+                    indent = ''.join(indent_tokens)
+
+                    text = indent + text
+
         else:
 
             self.value = '<' + self.name
@@ -196,6 +216,112 @@ class ComparisonSetTei:
         # Append elements from the diff tree
         self.body.append()
 
+class Alignment:
+
+    # Generate the path using the optimal alignment
+
+    # Andrew McCallum's (UMass Amherst) implementation seems to a popular implementation referenced frequently:
+    # http://people.cs.umass.edu/~mccallum/courses/cl2006/lect4−stredit.pdf
+    def stredit(self, u, v):
+        "Calculate Levenstein edit distance for strings s1 and s2."
+
+        len1 = len(u) # vertically
+        len2 = len(v) # horizontally
+
+        # Allocate the table
+        self.table = [None]*(len2+1)
+        for i in range(len2+1): table[i] = [0]*(len1+1)
+
+        # Initialize the table
+        for i in range(1, len2+1): table[i][0] = i # Populate the first row with values
+        for i in range(1, len1+1): table[0][i] = i # Populate the first column with values
+
+        # Do dynamic programming
+        for i in range(1,len2+1):
+
+            for j in range(1,len1+1):
+
+                if u[j-1] == v[i-1]:
+
+                    d = 0
+                else:
+
+                    d = 1
+                    table[i][j] = min(table[i-1][j-1] + d, # Substitution
+                                      table[i-1][j]+1, # Insertion
+                                      table[i][j-1]+1) # Deletion
+
+    # Needleman-Wunsch
+    def nwunsch(self):
+
+        pass
+
+    # Smith-Waterman
+    def swaterman(self):
+
+        pass
+
+    # Retrieve the optimal alignment path
+    # Adapted from https://github.com/alevchuk/pairwise-alignment-in-python/blob/master/alignment.py
+    def _alignment_path(self):
+
+        # table = [ [1,2,3,4,5],
+        #           [1,2,3,4,5],
+        #           [2,3,3,4,5] ]
+
+        # i = max(self.table[j])
+        # j = max(self.table[i])
+        i = len(v) + 1
+        j = len(u) + 1
+
+        path = []
+
+        while i > 0 and j > 0:
+
+            score_current = score[i][j]
+
+            score_sub = score[i-1][j-1]
+            score_delete = score[i][j-1]
+            score_insert = score[i-1][j]
+
+            if score_sub < score_current:
+
+                path.append( SUB )
+
+                i -= 1
+                j -= 1
+            elif score_insert < score_current:
+
+                path.append( INS )
+
+                j -= 1
+            elif score_delete < score_current:
+
+                path.append( DEL )
+
+                i -= 1
+            else:
+
+                raise Exception('No possible alignment found')
+
+        return path.reverse()
+
+    def alignment_path(self):
+
+#        >>> diff = ndiff('one\ntwo\nthree\n'.splitlines(1),
+#...              'ore\ntree\nemu\n'.splitlines(1))
+#>>> diff = list(diff) # materialize the generated delta into a list
+#>>> print ''.join(restore(diff, 1)),
+#one
+#two
+#three
+#>>> print ''.join(restore(diff, 2)),
+        
+        diff = ndiff('one\ntwo\nthree\n'.splitlines(1), 'ore\ntree\nemu\n'.splitlines(1))
+        diff = list(diff)
+        print ''.join(restore(diff, 1))
+
+        pass
 
 class Tokenizer:
 
@@ -392,6 +518,37 @@ class Tokenizer:
 
         return diff_tree
 
+    @staticmethod
+    def clean_tokens(tokens):
+
+        output = []
+        
+        i=0
+        while i < len(tokens) - 1:
+
+            u = tokens[i]
+            v = tokens[i+1]
+
+            if u in ['"', "'"]:
+
+                output.append(u + v)
+                i+=1
+            elif v in string.punctuation:
+
+                output = output[0:-1] + [ u + v ]
+                # output.append(u + v)
+                i+=1
+            else:
+
+                output.append(u)
+
+            i+=1
+
+        print 'trace: cleaned'
+        print output
+
+        return output
+
     # Generates a tree structuring the differences identified within two given TEI Documents
     @staticmethod
     def diff(node_u, text_u_id, node_v, text_v_id):
@@ -497,88 +654,45 @@ class Tokenizer:
                 # Default to the Treebank tokenizer
                 # text_tokenizer = TreebankWordTokenizer()
                 text_tokenizer = PunktWordTokenizer()
+
                 text_tokens_u = text_tokenizer.tokenize(text_node_u)
+                text_tokens_u = Tokenizer.clean_tokens(text_tokens_u)
+
                 text_tokens_v = text_tokenizer.tokenize(text_node_v)
+                text_tokens_v = Tokenizer.clean_tokens(text_tokens_v)
+
+#                print "before"
+#                print "\n"
+#                print [ (i,e) for (i,e) in enumerate(text_tokens_u) ]
+#                print "\n"
+#                print [ (i,e) for (i,e) in enumerate(text_tokens_v) ]
 
                 # Attempt to align the sequences (by adding gaps where necessary)
                 # Strip all tags and transform into the lower case
                 # Here is where the edit distance is to be inserted
-
                 text_tokens_u_len = len(text_tokens_u)
                 text_tokens_v_len = len(text_tokens_v)
 
-                # if min(text_tokens_u_len, text_tokens_v_len) > 0 and text_tokens_u_len != text_tokens_v_len:
-                if min(text_tokens_u_len, text_tokens_v_len) > 0:
+#                if text_tokens_u_len != text_tokens_v_len and min(text_tokens_u_len, text_tokens_v_len) > 0:
 
-                    # @todo Implement the sequence alignment
-                    # Retrieve the longest string
-                    # text_align_base = max(text_tokens_u, text_tokens_v)
-                    # text_align_witness = text_tokens_v if text_align_base is text_tokens_u else text_tokens_u
+                for i, diff in enumerate(ndiff(text_tokens_u, text_tokens_v)):
 
-                    # for text_align_base, text_align_witness, j in [ (text_tokens_u, text_tokens_v, 1), (text_tokens_v, text_tokens_u, -1) ]:
-                    for text_align_base, text_align_witness, j in [ (text_tokens_u, text_tokens_v, -1), (text_tokens_u, text_tokens_v, 1) ]:
-                    # for text_align_base, text_align_witness in [ (text_tokens_u, text_tokens_v) ]:
-                    
-                        # print len(text_tokens_u)
-                        # print len(text_tokens_v)
-                        # print text_align_base
-                        # print text_align_witness
-                        
-                        # Look ahead by multiple tokens
-                        # @todo Refactor for more complex matching schemes?
-                        for i, base_token in enumerate(text_align_base):
-                            
-                            # Offset of 1
-                            if i == 0 or i + j >= len(text_align_witness): continue
-                            
-                            witness_token = text_align_witness[i + j]
-                            
-                            # Strip all tags
-                            base_token = re.sub(r'', '', base_token)
-                            
-                        # Cast into the lower case
-                            base_token = base_token.lower()
-                            
-                        # Strip all leading and trailing whitespace
-                            base_token = base_token.strip()
-                            
-                            witness_token = re.sub(r'', '', witness_token).lower().strip()
-                            
-                        # Compare the actual text data itself
-                            edit_dist = nltk.metrics.distance.edit_distance(base_token, witness_token)
-                            if edit_dist == 0:
-                                
-                                # Insert an empty token into the position at i within the witness
-                                # list1[0:i-1] + [''] + list1[i-1:]
-                                # print text_align_witness[0:i - 2]
-                                # print text_align_witness[i - 2]
-                                
-                                # This should be implemented using modular arithmetic
-                                if i == 1:
+                    opcode = diff[0:1]
+                    if opcode == '+':
 
-                                    if j == -1:
-                                    
-                                        text_align_witness = [''] + text_align_witness
-                                    else:
+                        text_tokens_u = text_tokens_u[0:i] + [''] + text_tokens_u[i:]
 
-                                        text_align_witness = text_align_witness[1:] + [ text_align_witness[0] ]
-                                else:
-                                    
-                                    text_align_witness = text_align_witness[0:i + j + j] + [''] + text_align_witness[i + j + j:]
-                                    
-                                print text_align_base
-                                print text_align_witness
-                                    
-                        # Swap into place
-                        # Should this be necessary?
-                        text_tokens_u = text_align_base if text_align_base is text_tokens_u else text_tokens_v
-                        text_tokens_v = text_align_witness if text_align_base is text_tokens_u else text_tokens_u
+                    elif opcode == '-':
 
-                        # print text_tokens_u
-                        # print text_tokens_v
+                        text_tokens_v = text_tokens_v[0:i] + [''] + text_tokens_v[i:]
 
-                # print [ (i,e) for (i,e) in enumerate(text_tokens_u) ]
-                # print [ (i,e) for (i,e) in enumerate(text_tokens_v) ]
+                # Deprecated
+
+#                print "after"
+#                print "\n"
+#                print [ (i,e) for (i,e) in enumerate(text_tokens_u) ]
+#                print "\n"
+#                print [ (i,e) for (i,e) in enumerate(text_tokens_v) ]
                 # print enumerate(text_tokens_v)
                                     
                 # text_tokens_intersect = filter(lambda t: t in text_tokens_v, text_tokens_u)
@@ -596,6 +710,7 @@ class Tokenizer:
 #                print 'tokens in v'
 #                print text_tokens_v
 
+#                print elem_node_u
 #                print 'tokens in u and v'
 #                print text_tokens_intersect
 #                print 'tokens in just u'
@@ -612,23 +727,30 @@ class Tokenizer:
                 # |    \  \
                 # line of tokens
 
+#                print 'trace5: tokens for ' + elem_node_u
+#                print diff_tree[elem_node_u]
+
                 # For tokens in both sets
                 for pos,text_token in text_tokens_intersect:
-
-                    # print 'trace20'
-                    # print text_token
 
                     # pos = text_tokens_u.index(text_token)
                     # diff_tree.add_edge(elem_node_u, text_token, distance=0, witness='base', feature='ngram', position=pos)
 
+#                    print 'Adding the token "' + text_token + '" for the line ' + elem_node_u + 'at the position ' + str(pos) + ' for the witness common'
+
                     token = TextToken(text_token)
                     diff_tree.add_edge(elem_node_u, token, distance=0, witness='common', feature='ngram', position=pos)
+
+#                print 'trace4: tokens for ' + elem_node_u
+#                print diff_tree[elem_node_u]
 
                 # @todo Refactor
                 for pos,text_token in text_tokens_diff_u:
 
                     # pos = text_tokens_u.index(text_token)
                     # diff_tree.add_edge(elem_node_u, '_' + text_token, distance=0, witness=text_u_id, feature='ngram', position=pos)
+
+#                    print 'Adding the token "' + text_token + '" for the line ' + elem_node_u + 'at the position ' + str(pos) + ' for the witness ' + text_u_id
 
                     token = TextToken(text_token)
                     diff_tree.add_edge(elem_node_u, token, distance=0, witness=text_u_id, feature='ngram', position=pos)
@@ -640,9 +762,14 @@ class Tokenizer:
                     # pos = text_tokens_v.index(text_token)
                     # diff_tree.add_edge(elem_node_u, '__' + text_token, distance=None, witness=text_v_id, feature='ngram', position=pos)
 
+#                    print 'Adding the token "' + text_token + '" for the line ' + elem_node_u + 'at the position ' + str(pos) + ' for the witness ' + text_v_id
+
                     token = TextToken(text_token)
                     diff_tree.add_edge(elem_node_u, token, distance=None, witness=text_v_id, feature='ngram', position=pos)
-                pass
+                    
+    
+
+    
 
             pass
 
