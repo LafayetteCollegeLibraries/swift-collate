@@ -18,10 +18,27 @@ define("debug", default=False, help="run in debug mode")
 class LineModule(tornado.web.UIModule):
 
     # @todo Refactor using MV* architecture
-    def render(self, line, index):
+    def render(self, line, index, distance):
 
         line_classes = Line.classes(line)
-        classes = string.join(line_classes + [' line-' + str(index)]) if line_classes else 'line-' + str(index)
+        classes = string.join(line_classes + ['line', 'line-' + str(index)]) if line_classes else 'line line-' + str(index)
+
+        # Add the class unique to the edit distance for the line
+        classes += ' line-distance-' + str(distance)
+
+        # Add the appropriate gradient class
+        gradient_class = 'gradient-'
+
+        if distance == 0:
+
+            gradient_class += 'none'
+        elif distance is None or distance >= 8:
+
+            gradient_class += 'severe'
+        else:
+
+            gradient_class += ['mild', 'moderate', 'warm', 'hot'][distance / 2]
+        classes += ' ' + gradient_class
 
         line = Line.escape(line)
 
@@ -33,14 +50,18 @@ class TokenModule(tornado.web.UIModule):
     def render(self, token, index, distance):
 
         token_classes = TextToken.classes(token)
-        classes = string.join(token_classes + [' token-' + str(index)]) if token_classes else 'token-' + str(index)
+        classes = string.join(token_classes + ['token', 'token-' + str(index)]) if token_classes else 'token token-' + str(index)
 
         # Add the class unique to the edit distance for the token
         classes += ' token-distance-' + str(distance)
 
         # Add the appropriate gradient class
-        gradient_class = 'token-gradient-'
-        if distance is None or distance >= 8:
+        gradient_class = 'gradient-'
+
+        if distance == 0:
+
+            gradient_class += 'none'
+        elif distance is None or distance >= 8:
 
             gradient_class += 'severe'
         else:

@@ -9,27 +9,33 @@
 }
 
 /* Refactor using LESS */
-.token-gradient-severe {
+.gradient-severe {
 
     background-color: #f27474;
 }
 
-.token-gradient-hot {
+.gradient-hot {
 
     background-color: #f2a5a5;
 }
 
-.token-gradient-warm {
+.gradient-warm {
 
     background-color: #f2b3b3;
 }
 
-.token-gradient-moderate {
+.gradient-moderate {
 
     background-color: #f2c2c2;
 }
 
-.token-gradient-mild {
+.gradient-mild {
 
     background-color: #F2DEDE;    
 }
+
+.gradient-none {
+
+    background-color: #F2DEDE;    
+}
+

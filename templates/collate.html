@@ -63,7 +63,9 @@
 	      <tr>
 		<th scope="row">{{ row }}</th>
 		<td>{{ escape(data['witness']) }}</td>
-		{% module Line(escape(data['text']), line_index) %}
+		
+		{% module Line(escape(data['text']), line_index, data['distance']) %}
+
 		<td>{{ data['distance'] }}</td>
 	      </tr>
 	      {% end %}
