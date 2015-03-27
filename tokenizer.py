@@ -21,6 +21,114 @@ class TextToken:
 
         return self.value
 
+    @staticmethod
+    def classes(ngram):
+
+        output = ngram
+        classes = []
+
+        for element_name, element_classes in { 'indent': ['indent'],
+                                               'display-initial': [ 'display-initial' ] }.iteritems():
+
+            if re.match(element_name.upper() + '_ELEMENT', output) or re.match(element_name.upper() + '_CLASS_OPEN', output):
+
+                classes.extend(element_classes)
+        return classes
+
+    @staticmethod
+    def escape(ngram):
+
+        output = ngram
+
+        for class_name, markup in { 'italic': [ '<i>', '</i>' ],
+                                    'display-initial': [ '<span>', '</span>' ],
+                                    'underline': [ '<u>', '</u>' ],
+                                    }.iteritems():
+
+            class_closed_delim = class_name.upper() + '_CLASS_CLOSED'
+            class_opened_delim = class_name.upper() + '_CLASS_OPEN'
+
+            if class_name == 'display-initial':
+
+                #output = re.sub(class_name.upper() + '_CLASS_CLOSED', markup[-1], output)
+                #output = re.sub(class_name.upper() + '_CLASS_OPEN', markup[0], output)
+
+                # output = output.lower().capitalize()
+
+                markup_match = re.match( re.compile(class_opened_delim + '(.+?)' + class_closed_delim + '(.+?)\s?'), output )
+
+                if markup_match:
+
+                    markup_content = markup_match.group(1) + markup_match.group(2)
+
+                    output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim + '(.+?)\s?'), markup[0] + markup_content.lower().capitalize() + markup[1], output )
+            else:
+
+                #output = re.sub(class_name.upper() + '_CLASS_CLOSED', markup[-1], output)
+                #output = re.sub(class_name.upper() + '_CLASS_OPEN', markup[0], output)
+                output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), markup[0] + '\\1' + markup[1], output )
+
+        for element_name, markup in { 'gap': '<br />',
+                                      'indent': '<span class="indent">&#x00009;</span>'
+                                      }.iteritems():
+
+            output = re.sub(element_name.upper() + '_ELEMENT', markup, output)
+
+        return output
+
+class Line:
+
+    @staticmethod
+    def classes(line):
+
+        output = line
+        classes = []
+
+        for element_name, element_classes in { 'indent': ['indent'],
+                                               # 'display-initial': [ 'display-initial' ]
+                                               }.iteritems():
+
+            if re.match(element_name.upper() + '_ELEMENT', output) or re.match(element_name.upper() + '_CLASS_OPEN', output):
+
+                classes.extend(element_classes)
+        return classes
+
+    @staticmethod
+    def escape(line):
+
+        output = line
+
+        for class_name, markup in { 'italic': [ '<i>', '</i>' ],
+                                    'display-initial': [ '<span class="display-initial">', '</span>' ],
+                                    'underline': [ '<u>', '</u>' ],
+                                    }.iteritems():
+
+            class_closed_delim = class_name.upper() + '_CLASS_CLOSED'
+            class_opened_delim = class_name.upper() + '_CLASS_OPEN'
+
+            if class_name == 'display-initial':
+
+                # markup_match = re.match( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), output )
+                markup_match = re.match( re.compile(class_opened_delim + '(.+?)' + class_closed_delim + '(.+?\s+?)'), output )
+
+                if markup_match:
+
+                    # output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), markup[0] + markup_match.group(1).lower().capitalize() + markup[1], output )
+                    markup_content = markup_match.group(1) + markup_match.group(2)
+
+                    output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim + '(.+?\s+?)'), markup[0] + markup_content.lower().capitalize() + markup[1], output )
+            else:
+
+                output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), markup[0] + '\\1' + markup[1], output )
+
+        for element_name, markup in { 'gap': '<br />',
+                                      'indent': '<span class="indent">&#x00009;</span>'
+                                      }.iteritems():
+
+            output = re.sub(element_name.upper() + '_ELEMENT', markup, output)
+
+        return output
+
 class ElementToken:  
 
     def __init__(self, name=None, attrib=None, children=None, text=None, doc=None, **kwargs):
@@ -69,7 +177,8 @@ class ElementToken:
                 if indent_match:
 
                     indent_value = int(indent_match.group(1))
-                    indent_tokens = [u"«indent»"] * indent_value
+                    # indent_tokens = [u"«indent»"] * indent_value
+                    indent_tokens = [u"INDENT_ELEMENT"] * indent_value
                     indent = ''.join(indent_tokens)
 
                     text = indent + text
@@ -451,10 +560,12 @@ class Tokenizer:
 
                 if feature_element_text:
 
-                    parent.text += u"«" + feature_token + u"»" + feature_element_text + u"«" + feature_token + u"»" + feature_element_tail
+                    # parent.text += u"«" + feature_token + u"»" + feature_element_text + u"«" + feature_token + u"»" + feature_element_tail
+                    parent.text += feature_token.upper() + u"_CLASS_OPEN" + feature_element_text + feature_token.upper() + u"_CLASS_CLOSED" + feature_element_tail
                 else:
 
-                    parent.text += u"«" + feature_token + u"»" + feature_element_tail
+                    # parent.text += u"«" + feature_token + u"»" + feature_element_tail
+                    parent.text += feature_token.upper() + u"_ELEMENT" + feature_element_tail
 
                 # Remove the feature_element itself
                 feature_element.getparent().remove(feature_element)
@@ -533,7 +644,7 @@ class Tokenizer:
 
                 output.append(u + v)
                 i+=1
-            elif v in string.punctuation:
+            elif v in string.punctuation or v[0] in ["'"]:
 
                 output = output[0:-1] + [ u + v ]
                 # output.append(u + v)
@@ -543,9 +654,6 @@ class Tokenizer:
                 output.append(u)
 
             i+=1
-
-        print 'trace: cleaned'
-        print output
 
         return output
 
@@ -574,10 +682,6 @@ class Tokenizer:
         # for edge in intersect_tree.edges(data=True):
         for u, v, data in tree_u.edges(data=True):
 
-#            print u
-#            print v
-#            print data
-
             # Only perform the edit distance for text nodes
             # edit_dist = nltk.metrics.distance(tree_u[u], tree_v[u])
             # (u, u, edit_dist)
@@ -602,8 +706,6 @@ class Tokenizer:
                 # @todo Implement handling for addressing structural realignment between stanzas (this would likely lie within Tokenizer.parse_text)
                 if not elem_node_u in tree_v:
 
-                    # print elem_node_u
-                    # print tree_v.edges()
                     continue
 
                 text_nodes_v = tree_v[elem_node_u].keys()
@@ -661,30 +763,27 @@ class Tokenizer:
                 text_tokens_v = text_tokenizer.tokenize(text_node_v)
                 text_tokens_v = Tokenizer.clean_tokens(text_tokens_v)
 
-#                print "before"
-#                print "\n"
-#                print [ (i,e) for (i,e) in enumerate(text_tokens_u) ]
-#                print "\n"
-#                print [ (i,e) for (i,e) in enumerate(text_tokens_v) ]
-
                 # Attempt to align the sequences (by adding gaps where necessary)
                 # Strip all tags and transform into the lower case
                 # Here is where the edit distance is to be inserted
                 text_tokens_u_len = len(text_tokens_u)
                 text_tokens_v_len = len(text_tokens_v)
 
-#                if text_tokens_u_len != text_tokens_v_len and min(text_tokens_u_len, text_tokens_v_len) > 0:
+                # if text_tokens_u_len != text_tokens_v_len and min(text_tokens_u_len, text_tokens_v_len) > 0:
+                if False:
 
-                for i, diff in enumerate(ndiff(text_tokens_u, text_tokens_v)):
+                    for i, diff in enumerate(ndiff(text_tokens_u, text_tokens_v)):
 
-                    opcode = diff[0:1]
-                    if opcode == '+':
+                        opcode = diff[0:1]
+                        if opcode == '+':
 
-                        text_tokens_u = text_tokens_u[0:i] + [''] + text_tokens_u[i:]
+                            text_tokens_u = text_tokens_u[0:i] + [''] + text_tokens_u[i:]
+                            # pass
 
-                    elif opcode == '-':
+                        elif opcode == '-':
 
-                        text_tokens_v = text_tokens_v[0:i] + [''] + text_tokens_v[i:]
+                            text_tokens_v = text_tokens_v[0:i] + [''] + text_tokens_v[i:]
+                            # pass
 
                 # Deprecated
 
@@ -703,7 +802,8 @@ class Tokenizer:
                 # text_tokens_diff_u = [''] * max_text_tokens
 
                 # text_tokens_diff_u = filter(lambda t: not t in text_tokens_v, text_tokens_u)
-                text_tokens_diff_u = [ (i,e) for (i,e) in enumerate(text_tokens_u) if i < len(text_tokens_v) and text_tokens_v[i] != e ]
+                # text_tokens_diff_u = [ (i,e) for (i,e) in enumerate(text_tokens_u) if i < len(text_tokens_v) and text_tokens_v[i] != e ]
+                text_tokens_diff_u = [ (i,e) for (i,e) in enumerate(text_tokens_u) if i < len(text_tokens_v) ]
                 
 #                print 'tokens in u'
 #                print text_tokens_u
@@ -717,7 +817,8 @@ class Tokenizer:
 #                print text_tokens_diff_u
 
                 # text_tokens_diff_v = [t for t in text_tokens_v if not t in text_tokens_u]
-                text_tokens_diff_v = [ (i,e) for (i,e) in enumerate(text_tokens_v) if i < len(text_tokens_u) and text_tokens_u[i] != e ]
+                # text_tokens_diff_v = [ (i,e) for (i,e) in enumerate(text_tokens_v) if i < len(text_tokens_u) and text_tokens_u[i] != e ]
+                text_tokens_diff_v = [ (i,e) for (i,e) in enumerate(text_tokens_v) if i < len(text_tokens_u) ]
 
 #                print 'tokens in just v'
 #                print text_tokens_diff_v
@@ -739,7 +840,7 @@ class Tokenizer:
 #                    print 'Adding the token "' + text_token + '" for the line ' + elem_node_u + 'at the position ' + str(pos) + ' for the witness common'
 
                     token = TextToken(text_token)
-                    diff_tree.add_edge(elem_node_u, token, distance=0, witness='common', feature='ngram', position=pos)
+                    # diff_tree.add_edge(elem_node_u, token, distance=0, witness='common', feature='ngram', position=pos)
 
 #                print 'trace4: tokens for ' + elem_node_u
 #                print diff_tree[elem_node_u]
@@ -765,16 +866,9 @@ class Tokenizer:
 #                    print 'Adding the token "' + text_token + '" for the line ' + elem_node_u + 'at the position ' + str(pos) + ' for the witness ' + text_v_id
 
                     token = TextToken(text_token)
-                    diff_tree.add_edge(elem_node_u, token, distance=None, witness=text_v_id, feature='ngram', position=pos)
+#                    diff_tree.add_edge(elem_node_u, token, distance=None, witness=text_v_id, feature='ngram', position=pos)
+                    diff_tree.add_edge(elem_node_u, token, distance=nltk.metrics.distance.edit_distance(text_tokens_u[pos], token.value), witness=text_v_id, feature='ngram', position=pos)
                     
-    
-
-    
-
             pass
-
-        # Generate the edit distance
-        
-        # Append the edge to the diff_tree, with the edit distance as the attribute
 
         return diff_tree

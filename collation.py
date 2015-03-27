@@ -27,6 +27,8 @@ class Collation:
 #        print 'trace2: nodes for <lg n="1"/l n="3" />'
 #        print self.tree['<lg n="1"/l n="3" />']
 
+        line_ngram_distances = {}
+
         i=0
         for u,v,data in self.tree.edges(data=True):
 
@@ -113,9 +115,33 @@ class Collation:
                             #    self._values['lines'][n][feature][witness][position - 1] = ''
 
                             self._values['lines'][n][feature][witness][position] = text
+
                     else:
 
                         self._values['lines'][n] = { feature: { witness: { position: text } } }
+
+                    # Handling for the edit distances for each token
+                    # Implemented for SPP-177
+                    # @todo Refactor
+
+#                    print 'TRACE ADDING NGRAM DISTANCE'
+#                    print { position: distance }
+
+                    # Index by line, witness, position
+                    if n in line_ngram_distances:
+
+                        if witness in line_ngram_distances[n]:
+
+                            line_ngram_distances[n][witness][position] = distance
+                        else:
+
+                            line_ngram_distances[n][witness] = { position: distance }
+                    else:
+
+                        line_ngram_distances[n] = { witness: { position: distance } }
+
+#                    print 'TRACE ADDING NGRAM DISTANCE2'
+#                    print line_ngram_distances
 
                 else:
                     # All other features within any given line
@@ -185,7 +211,7 @@ class Collation:
                     
                     for feature,row in value.iteritems():
 
-#                        print 'trace8'
+#                        print 'TRACE8'
 #                        print n
 #                        print feature
 #                        print row
@@ -233,7 +259,7 @@ class Collation:
                                     sorted_values[doc_feature][n][feature] = sorted_line_ngrams
 
                                     # Map each Dict item...
-                                    _line_ngrams = [{'witness': witness, 'line_ngrams': v, 'order': witness} for witness,v in sorted_line_ngrams.items()]
+                                    _line_ngrams = [{'witness': witness, 'line_ngrams': v, 'order': witness, 'distances': []} for witness,v in sorted_line_ngrams.items()]
                                     # ordered_line_ngrams = [{}] * (len(_line_ngrams) + 1)
 
                                     # ...and sort them:
@@ -252,14 +278,21 @@ class Collation:
 
                                             unordered_line_ngrams.append(line_ngram)
 
+                                        # SPP-177
+                                        # Work-around
+                                        # @todo Refactor
+                                            
+                                        # Index by line, witness, position
+                                        # sorted_values[doc_feature][n]['ngrams_distances'][line_ngram['witness']] = map(lambda line_ngram: line_ngram.distance, line_ngram['line_ngrams'])
+
                                     # ordered_line_ngrams = ordered_line_ngrams[0:1] + sorted(unordered_line_ngrams, key=itemgetter('witness')) + ordered_line_ngrams[1:]
                                     ordered_line_ngrams = ordered_line_ngrams[0:2] + sorted(unordered_line_ngrams, key=itemgetter('witness'))
 
                                     sorted_values[doc_feature][n]['ngrams_sorted'] = ordered_line_ngrams
+                                    sorted_values[doc_feature][n]['ngrams_distances'] = line_ngram_distances[n]
                                 else:
 
                                     sorted_values[doc_feature][n][feature] = sorted(row, key=lambda e: e['position'])
-                                    # print sorted(row, key=lambda e: e['number'])
                             else:
 
                                 sorted_values[doc_feature][n][feature] = sorted(row, key=lambda e: e['distance'])

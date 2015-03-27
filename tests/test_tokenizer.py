@@ -178,3 +178,16 @@ class TestTokenizer:
 
         assert lg_elem.xpath('local-name()') == 'lg'
         assert tei_text.xpath('local-name()') == 'text'
+
+    def test_clean_tokens(self):
+
+        tokens = ['Gen', "'ral"]
+        Tokenizer.clean_tokens(tokens)
+
+        assert tokens == ["Gen'ral"]
+
+        tokens2 = ['test', 'Gen', "'ral"]
+        Tokenizer.clean_tokens(tokens2)
+
+        tokens3 = ['Gen', "'ral", 'test']
+        Tokenizer.clean_tokens(tokens3)

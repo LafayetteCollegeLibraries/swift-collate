@@ -1,22 +1,35 @@
 
-
 /* ==========================================================================
    Author's custom styles
    ========================================================================== */
 
+.display-initial {
+    
+    font-variant: small-caps;
+}
 
+/* Refactor using LESS */
+.token-gradient-severe {
 
+    background-color: #f27474;
+}
 
+.token-gradient-hot {
 
+    background-color: #f2a5a5;
+}
 
+.token-gradient-warm {
 
+    background-color: #f2b3b3;
+}
 
+.token-gradient-moderate {
 
+    background-color: #f2c2c2;
+}
 
+.token-gradient-mild {
 
-
-
-
-
-
-
+    background-color: #F2DEDE;    
+}

@@ -1,15 +1,56 @@
 
 import os.path
+import string
+
 import tornado.ioloop
 import tornado.web
+import tornado.escape
 
 from collation import Collation
 from tokenizer import Tokenizer
+from tokenizer import TextToken, Line
 
 from tornado.options import define, options, parse_command_line
 
 define("port", default=8888, help="run on the given port", type=int)
 define("debug", default=False, help="run in debug mode")
+
+class LineModule(tornado.web.UIModule):
+
+    # @todo Refactor using MV* architecture
+    def render(self, line, index):
+
+        line_classes = Line.classes(line)
+        classes = string.join(line_classes + [' line-' + str(index)]) if line_classes else 'line-' + str(index)
+
+        line = Line.escape(line)
+
+        return self.render_string("line.html", line=line, classes=classes)
+
+class TokenModule(tornado.web.UIModule):
+
+    # @todo Refactor using MV* architecture
+    def render(self, token, index, distance):
+
+        token_classes = TextToken.classes(token)
+        classes = string.join(token_classes + [' token-' + str(index)]) if token_classes else 'token-' + str(index)
+
+        # Add the class unique to the edit distance for the token
+        classes += ' token-distance-' + str(distance)
+
+        # Add the appropriate gradient class
+        gradient_class = 'token-gradient-'
+        if distance is None or distance >= 8:
+
+            gradient_class += 'severe'
+        else:
+
+            gradient_class += ['mild', 'moderate', 'warm', 'hot'][distance / 2]
+        classes += ' ' + gradient_class
+
+        token = TextToken.escape(token)
+
+        return self.render_string("token.html", token=token, classes=classes)
 
 class CollateHandler(tornado.web.RequestHandler):
 
@@ -103,8 +144,6 @@ class CollateHandler(tornado.web.RequestHandler):
 
         self.render("collate.html", collation=collated_set.values())
 
-        pass
-
 class MainHandler(tornado.web.RequestHandler):
 
     def get(self):
@@ -122,13 +161,14 @@ def main():
 #            (r"/auth/login", AuthLoginHandler),
 #            (r"/auth/logout", AuthLogoutHandler),
             (r"/collate", CollateHandler),
-            ],
+        ],
         cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
         login_url="/auth/login",
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
         static_path=os.path.join(os.path.dirname(__file__), "static"),
         xsrf_cookies=True,
         debug=options.debug,
+        ui_modules={ "Token": TokenModule, "Line": LineModule },
         )
     app.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()

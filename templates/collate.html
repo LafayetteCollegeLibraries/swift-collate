@@ -5,7 +5,7 @@
       <div class="row">
         <div class="col-md-12">
           <h2>Collation of Witnesses</h2>
-          <p>Witnesses are organized by line, with each line being further tokenized using a select algorithm.</p>
+          <p>Witnesses are organized by line, with each line being further tokenized using <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.85.5017&rep=rep1&type=pdf">Kiss, Tibor, and Strunk's Punkt tokenization algorithm</a>.</p>
 
 	  {% for row,values in collation['lines'].iteritems() %}
 
@@ -33,10 +33,16 @@
 	      <tr>
 		<th scope="row">{{ line_ngram_values['witness'] }}</th>
 
-	      {% for line_ngram in line_ngram_values['line_ngrams'] %}
+		{% for line_ngram_index, line_ngram in enumerate(line_ngram_values['line_ngrams']) %}
 
-		<td>{{ line_ngram }}</td>
-	      {% end %}
+		  {% if line_ngram_index in values['ngrams_distances'][line_ngram_values['witness']] %}
+
+		    {% module Token(line_ngram, line_ngram_index, values['ngrams_distances'][line_ngram_values['witness']][line_ngram_index] ) %}
+		  {% else %}
+
+		    {% module Token(line_ngram, line_ngram_index, None) %}
+		  {% end %}
+		{% end %}
 	      </tr>
 	      {% end %}
 	    </tbody>
@@ -53,11 +59,11 @@
 	    </thead>
 
 	    <tbody>
-	      {% for data in values['line'] %}
+	      {% for line_index, data in enumerate(values['line']) %}
 	      <tr>
 		<th scope="row">{{ row }}</th>
 		<td>{{ escape(data['witness']) }}</td>
-		<td>{{ escape(data['text']) }}</td>
+		{% module Line(escape(data['text']), line_index) %}
 		<td>{{ data['distance'] }}</td>
 	      </tr>
 	      {% end %}
