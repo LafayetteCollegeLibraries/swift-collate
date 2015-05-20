@@ -209,12 +209,4 @@ class TestTokenizer:
         tokens5 = Tokenizer.clean_tokens(tokens5)
 
 #        assert tokens5 == ['DISPLAY-INITIAL_CLASS_OPENIDISPLAY-INITIAL_CLASS_CLOSEDN', 'Fable', 'all', 'things', 'hold', 'Discourse', ';', 'Then', 'UNDERLINE_CLASS_OPENWordsUNDERLINE_CLASS_CLOSED', ',', 'no', 'doubt', ',', 'must', 'talk', 'of', 'course.']
-
-    def test_element_token(self):
         
-        nodes = etree.fromstring('<lg n="1"><l xmlns="http://www.tei-c.org/ns/1.0" n="21">(For, <hi rend="underline">Two</hi> of <hi rend="underline">You</hi> make <hi rend="underline">One</hi> of <hi rend="underline">Us</hi>.)</l></lg>')
-        node = nodes.xpath('//tei:l', namespaces={'tei': "http://www.tei-c.org/ns/1.0"}).pop()
-
-        token = ElementToken(doc=node)
-        assert token.text == '(For, _CLASS_OPENTwo_CLASS_CLOSED of _CLASS_OPENYou_CLASS_CLOSED make _CLASS_OPENOne_CLASS_CLOSED of _CLASS_OPENUs_CLASS_CLOSED.)'
-

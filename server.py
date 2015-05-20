@@ -6,9 +6,8 @@ import tornado.ioloop
 import tornado.web
 import tornado.escape
 
-from collation import Collation
-from tokenizer import Tokenizer
-from tokenizer import TextToken, Line
+from SwiftDiff.collation import Collation
+from SwiftDiff.tokenizer import Tokenizer, TextToken, Line
 
 from tornado.options import define, options, parse_command_line
 

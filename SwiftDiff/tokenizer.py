@@ -183,20 +183,25 @@ class ElementToken:
         self.children = children
 
         # Parsing for markup should occur here
-#        if name == 'l' or name == 'p':
+        if name == 'l' or name == 'p':
 
-#            doc_markup = etree.tostring(doc)
-#            for feature in [{'xml': '<hi rend="italic">', 'text_token': 'italic'},
-#                            {'xml': '<hi rend="display-initial">', 'text_token': 'display-initial'},
-#                            {'xml': '<hi rend="underline">', 'text_token': 'underline'},
-#                            {'xml': '<gap>', 'text_token': 'gap'}]:
+            doc_markup = etree.tostring(doc)
+            for feature in [{'xml': '<hi rend="italic">', 'text_token': 'italic'},
+                            {'xml': '<hi rend="display-initial">', 'text_token': 'display-initial'},
+                            {'xml': '<hi rend="underline">', 'text_token': 'underline'},
+                            {'xml': '<gap>', 'text_token': 'gap'}]:
 
-#                feature_xml = feature['xml']
+                feature_xml = feature['xml']
 
 #                doc_markup = re.sub(feature_xml + '(.+?)' + '</hi>', u"_CLASS_OPEN\\1_CLASS_CLOSED", doc_markup)
+#                doc_markup = re.sub(feature_xml + '(.+?)', u"_CLASS_OPEN\\1", doc_markup)
+                doc_markup = re.sub(feature_xml , string.upper(feature['text_token']) + u"_CLASS_OPEN", doc_markup)
+            doc_markup = re.sub('</hi>', u"_CLASS_CLOSED", doc_markup)
 
-#                new_doc = etree.fromstring(doc_markup)
-#                text = string.join(list(new_doc.itertext())) if new_doc.text is not None else ''
+            print(doc_markup)
+
+            new_doc = etree.fromstring(doc_markup)
+            text = string.join(list(new_doc.itertext())) if new_doc.text is not None else ''
 
         # Insert the identation values for the rendering
         if 'rend' in attrib:

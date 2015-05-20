@@ -45,3 +45,11 @@ class TestElementToken:
         assert first_child_tag == 'l'
 
         assert re.search('So I piped with merry chear. ', token.text)
+
+        # Case 3
+        nodes = etree.fromstring('<lg n="1"><l xmlns="http://www.tei-c.org/ns/1.0" n="21">(For, <hi rend="underline">Two</hi> of <hi rend="underline">You</hi> make <hi rend="underline">One</hi> of <hi rend="underline">Us</hi>.)</l></lg>')
+        node = nodes.xpath('//tei:l', namespaces={'tei': "http://www.tei-c.org/ns/1.0"}).pop()
+
+        token = ElementToken(doc=node)
+
+        assert token.text == '(For, UNDERLINE_CLASS_OPENTwo_CLASS_CLOSED of UNDERLINE_CLASS_OPENYou_CLASS_CLOSED make UNDERLINE_CLASS_OPENOne_CLASS_CLOSED of UNDERLINE_CLASS_OPENUs_CLASS_CLOSED.)'
