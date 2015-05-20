@@ -24,16 +24,18 @@
 	<div2 type="poem" xml:id="d4">
 	  <head>Introduction</head>
 	  <lg n="1" type="stanza">
-	    <l n="1" >Piping down the valleys wild, </l>
-	    <l n="2" >Piping songs of pleasant glee, </l>
-	    <l n="3" >On a cloud I saw a child, </l>
-	    <l n="4" >And he laughing said to me: </l>
+	    <l n="1" >IN Fable all things hold Discourse; <hi rend="display-initial">I</hi>N Fable all things hold Discourse;</l>
+	    <l n="2">Then <hi rend="underline">Words</hi>, no doubt, must talk of course.</l>
+	    <l n="3"></l>
 	  </lg>
 	  <lg n="2" type="stanza">
-	    <l n="1">"Pipe a song about a Lamb!" </l>
-	    <l n="2">So I piped with merry chear. </l>
-	    <l n="3">"Piper, pipe that song again;" </l>
-	    <l n="4">So I piped, he wept to hear. </l>
+	    <l n="3">Once on a Time, near <hi rend="underline">Channel-Row</hi>,</l>
+	    <l n="4">Two hostile Adverbs, <hi rend="underline">Ay</hi> and <hi rend="underline">No</hi>,</l>
+	    <l n="5">Were hast'ning to the Field of Fight,</l>
+	    <l n="6">And Front to Front stood opposite.</l>
+	    <l n="7">Before each Gen'ral join'd the Van,</l>
+	    <l n="8"><hi rend="underline">Ay</hi>, the more courteous Knight, began.</l>
+	    <l n="9"></l>
 	  </lg>
 	</div2>
       </div1>

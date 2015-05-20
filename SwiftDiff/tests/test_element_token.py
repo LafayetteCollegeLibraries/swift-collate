@@ -1,15 +1,22 @@
 import os
 import sys
 import pytest
-import re
 
 from lxml import etree
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from SwiftDiff.tokenizer import ElementToken
+from SwiftDiff import tokenizer.ElementToken as ElementToken
 
 class TestElementToken:
+
+    @pytest.fixture
+    def tei_doc(self):
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/test_tei.xml')) as f:
+
+            data = f.read()
+
+        return etree.fromstring(data)
 
     @pytest.fixture
     def tei_stanza(self):
@@ -28,20 +35,21 @@ class TestElementToken:
         tag = tei_stanza.xpath('local-name()')
         children = list(tei_stanza)
 
-        token = ElementToken(tag, tei_stanza.attrib, children, tei_stanza.text, tei_stanza)
+        token = ElementToken(tag, tei_stanza.attrib, children, tei_stanza.text)
         assert token.name == 'lg'
-        assert token.attrib['n'] == '2'
+        assert token.attrib['n'] == '1'
 
         first_child_tag = token.children[0].xpath('local-name()')
         assert first_child_tag == 'l'
-
-        assert re.search('"Pipe a song about a Lamb!" ', token.text)
+        assert token.text == "\n\t    "
 
         token_b = ElementToken(doc=tei_stanza)
         assert token_b.name == 'lg'
-        assert token_b.attrib['n'] == '2'
+        assert token_b.attrib['n'] == '1'
 
         first_child_tag = token_b.children[0].xpath('local-name()')
         assert first_child_tag == 'l'
 
-        assert re.search('So I piped with merry chear. ', token.text)
+        assert token.text == "\n\t    "
+
+        pass

@@ -169,20 +169,6 @@ class ElementToken:
             # self.value = '<' + self.name
             attribs = [(k,v) for (k,v) in attrib.iteritems() if k == 'n']
 
-            # Insert the identation values for the rendering
-            if 'rend' in attrib:
-
-                rend = attrib['rend']
-                indent_match = re.match(r'indent\((\d)\)', rend)
-                if indent_match:
-
-                    indent_value = int(indent_match.group(1))
-                    # indent_tokens = [u"«indent»"] * indent_value
-                    indent_tokens = [u"INDENT_ELEMENT"] * indent_value
-                    indent = ''.join(indent_tokens)
-
-                    text = indent + text
-
         else:
 
             self.value = '<' + self.name
@@ -195,6 +181,36 @@ class ElementToken:
         self.value += ' />'
 
         self.children = children
+
+        # Parsing for markup should occur here
+#        if name == 'l' or name == 'p':
+
+#            doc_markup = etree.tostring(doc)
+#            for feature in [{'xml': '<hi rend="italic">', 'text_token': 'italic'},
+#                            {'xml': '<hi rend="display-initial">', 'text_token': 'display-initial'},
+#                            {'xml': '<hi rend="underline">', 'text_token': 'underline'},
+#                            {'xml': '<gap>', 'text_token': 'gap'}]:
+
+#                feature_xml = feature['xml']
+
+#                doc_markup = re.sub(feature_xml + '(.+?)' + '</hi>', u"_CLASS_OPEN\\1_CLASS_CLOSED", doc_markup)
+
+#                new_doc = etree.fromstring(doc_markup)
+#                text = string.join(list(new_doc.itertext())) if new_doc.text is not None else ''
+
+        # Insert the identation values for the rendering
+        if 'rend' in attrib:
+
+            rend = attrib['rend']
+            indent_match = re.match(r'indent\((\d)\)', rend)
+            if indent_match:
+
+                indent_value = int(indent_match.group(1))
+                # indent_tokens = [u"«indent»"] * indent_value
+                indent_tokens = [u"INDENT_ELEMENT"] * indent_value
+                indent = ''.join(indent_tokens)
+
+                text = indent + text
 
         self.text = text
 
@@ -417,15 +433,6 @@ class Alignment:
 
     def alignment_path(self):
 
-#        >>> diff = ndiff('one\ntwo\nthree\n'.splitlines(1),
-#...              'ore\ntree\nemu\n'.splitlines(1))
-#>>> diff = list(diff) # materialize the generated delta into a list
-#>>> print ''.join(restore(diff, 1)),
-#one
-#two
-#three
-#>>> print ''.join(restore(diff, 2)),
-        
         diff = ndiff('one\ntwo\nthree\n'.splitlines(1), 'ore\ntree\nemu\n'.splitlines(1))
         diff = list(diff)
         print ''.join(restore(diff, 1))
@@ -491,10 +498,30 @@ class Tokenizer:
     @staticmethod
     def parse(node, name=''):
 
+#        print 'trace4'
+#        print etree.tostring(node)
+
         # Initialize an undirected graph for the tree, setting the root node to the lxml node
         token_tree = nx.Graph()
 
         token_tree.name = name
+
+        # Parsing node content
+        #
+
+#        node_markup = etree.tostring(node)
+#        for feature in [{'xml': '<hi rend="italic">', 'text_token': 'italic'},
+#                        {'xml': '<hi rend="display-initial">', 'text_token': 'display-initial'},
+#                        {'xml': '<hi rend="underline">', 'text_token': 'underline'},
+#                        {'xml': '<gap>', 'text_token': 'gap'}]:
+
+#            feature_xml = feature['xml']
+
+#            node_markup = re.sub(feature_xml + '(.+?)' + '</hi>', u"_CLASS_OPEN\\1_CLASS_CLOSED", node_markup)
+
+#            new_node = etree.fromstring(node_markup)
+            # text = string.join(list(new_node.itertext())) if new_node.text is not None else ''
+#            node.text = string.join(list(new_node.itertext())) if new_node.text is not None else ''
 
         # Footnotes are not to be removed, but instead, are to be appended following each line
 
@@ -513,6 +540,7 @@ class Tokenizer:
     </body>
   </text>
 </TEI>''')
+
         footnotes = footnote_tree.xpath('//tei:l[@n="1"]', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}).pop()
 
         for footnote in node.xpath("//tei:note[@place='foot']", namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}):
@@ -536,23 +564,24 @@ class Tokenizer:
         # Handling for typographic feature (e. g. <hi />) and editorial elements (e. g. <gap />)
         # Leave intact; Prefer transformation into HTML5 using XSL Stylesheets
 
-        for feature in [{'xpath': '//tei:hi[@rend="italic"]', 'text_token': 'italic'},
-                        {'xpath': '//tei:hi[@rend="display-initial"]', 'text_token': 'display-initial'},
-                        {'xpath': '//tei:hi[@rend="underline"]', 'text_token': 'underline'},
-                        {'xpath': '//tei:gap', 'text_token': 'gap'}]:
+        for feature in [{'xpath': '//tei:hi[@rend="italic"]', 'text_token': 'italic', 'tag': 'hiitalic'},
+                        {'xpath': '//tei:hi[@rend="display-initial"]', 'text_token': 'display-initial', 'tag': 'hidisplay-italic'},
+                        {'xpath': '//tei:hi[@rend="underline"]', 'text_token': 'underline', 'tag': 'hiunderline'},
+                        {'xpath': '//tei:hi[@rend="SMALL-CAPS"]', 'text_token': 'small-caps', 'tag': 'hismall-caps'},
+                        {'xpath': '//tei:hi[@rend="sup"]', 'text_token': 'superscript', 'tag': 'hisuperscript'},
+                        {'xpath': '//tei:hi[@rend="black-letter"]', 'text_token': 'black-letter', 'tag': 'hiblack-letter'},
+                        {'xpath': '//tei:gap', 'text_token': 'gap', 'tag': 'gap'}]:
 
             feature_xpath = feature['xpath']
             feature_token = feature['text_token']
+            feature_tag = feature['tag']
 
             for feature_element in node.xpath(feature_xpath, namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}):
-            
+
                 # Ensure that all text trailing the feature_element element is preserved
                 parent = feature_element.getparent()
-                feature_element_text = '' if feature_element.text is None else feature_element.text
 
-                # print etree.tostring(feature_element)
-                # print parent.text
-                # print feature_element_text
+                feature_element_text = '' if feature_element.text is None else feature_element.text
 
                 # Work-around for lxml
                 if parent.text is None: parent.text = ''
@@ -560,18 +589,39 @@ class Tokenizer:
 
                 if feature_element_text:
 
-                    # parent.text += u"«" + feature_token + u"»" + feature_element_text + u"«" + feature_token + u"»" + feature_element_tail
-                    parent.text += feature_token.upper() + u"_CLASS_OPEN" + feature_element_text + feature_token.upper() + u"_CLASS_CLOSED" + feature_element_tail
+                    parent_text = parent.text
+
+                    i = 0
+                    sub_elements = list(parent.iterchildren())
+                    while i < len(sub_elements) - 1:
+
+                        sub_element = sub_elements[i]
+                        sub_element_id = sub_element.xpath('local-name()') + ( sub_element.get('rend') or '' )
+
+                        if sub_element_id == feature_tag:
+
+                            parent_text += feature_token.upper() + u"_CLASS_OPEN" + (sub_element.text or '') + feature_token.upper() + u"_CLASS_CLOSED" + (sub_element.tail or '')
+                        i+=1
+
+                    parent_text += ( parent.tail or '' )
+                    parent.text = parent_text
+
+                    ## parent.text += u"«" + feature_token + u"»" + feature_element_text + u"«" + feature_token + u"»" + feature_element_tail
+                    parent.text += feature_token.upper() + u"_CLASS_OPEN" + ( feature_element_text or '' ) + feature_token.upper() + u"_CLASS_CLOSED" + ( feature_element_tail or '' )
+
+                    parent_text = parent.text
+
                 else:
 
-                    # parent.text += u"«" + feature_token + u"»" + feature_element_tail
-                    parent.text += feature_token.upper() + u"_ELEMENT" + feature_element_tail
+                    ## parent.text += u"«" + feature_token + u"»" + feature_element_tail
+#                    parent.text += feature_token.upper() + u"_ELEMENT" + feature_element_tail
+                    pass
 
                 # Remove the feature_element itself
                 feature_element.getparent().remove(feature_element)
-        
 
         token_tree_root = ElementToken(doc=node)
+#        print etree.tostring(node)
 
         # For the text of the node, use the PunktWordTokenizer to tokenize the text
         # Ensure that each tokenized n-gram is linked to the lxml token for the tree:
@@ -622,7 +672,7 @@ class Tokenizer:
             text_u_id = text_u['id']
             node_v = text_v['node']
             text_v_id = text_v['id']
-            
+
             diff_u_v_tree = Tokenizer.diff(node_u, text_u_id, node_v, text_v_id)
 
             diff_tree = nx.compose(diff_tree, diff_u_v_tree)
@@ -635,23 +685,30 @@ class Tokenizer:
         output = []
         
         i=0
+        j=0
         while i < len(tokens) - 1:
 
             u = tokens[i]
             v = tokens[i+1]
 
-            if u in ['"', "'"]:
+            # Ensure that initial quotation marks are joined with proceeding tokens
+            if u in string.punctuation or u[0] in string.punctuation:
 
-                output.append(u + v)
-                i+=1
-            elif v in string.punctuation or v[0] in ["'"]:
+                if len(output) == 0:
 
-                output = output[0:-1] + [ u + v ]
-                # output.append(u + v)
+                    output.append(u + v)
+                else:
+
+                    output = output + [ u + v ]
                 i+=1
             else:
 
                 output.append(u)
+
+            if v in string.punctuation or v[0] in string.punctuation:
+
+                output = output + [ u + v ]
+                i+=1
 
             i+=1
 
@@ -660,6 +717,9 @@ class Tokenizer:
     # Generates a tree structuring the differences identified within two given TEI Documents
     @staticmethod
     def diff(node_u, text_u_id, node_v, text_v_id):
+
+#        print 'trace3'
+#        print node_u
         
         # Each node serves as a <tei:text> element for the text being compared
         tree_u = Tokenizer.text_tree(node_u, text_u_id)
@@ -744,6 +804,13 @@ class Tokenizer:
 
                 # Just add the edit distance
                 edit_dist = nodes_u_dist + nodes_v_dist + nltk.metrics.distance.edit_distance(text_node_u, text_node_v)
+
+                # Debugging
+                # if re.match(r"n=\"10\"", elem_node_u):
+                # if elem_node_u == '<lg n="1"/l n="3" />':
+#                print 'adding the edges'
+#                print elem_node_u
+#                print text_node_u
                 
                 # Note: This superimposes the TEI structure of the base text upon all witnesses classified as variants
                 # Add an edge between the base element and the base text
@@ -757,13 +824,18 @@ class Tokenizer:
                 # text_tokenizer = TreebankWordTokenizer()
                 text_tokenizer = PunktWordTokenizer()
 
-                text_tokens_u = text_tokenizer.tokenize(text_node_u)
-                text_tokens_u = Tokenizer.clean_tokens(text_tokens_u)
+#                text_tokens_u = text_tokenizer.tokenize(text_node_u)
+#                text_tokens_u = Tokenizer.clean_tokens(text_tokens_u)
 
-                text_tokens_v = text_tokenizer.tokenize(text_node_v)
-                text_tokens_v = Tokenizer.clean_tokens(text_tokens_v)
+#                text_tokens_v = text_tokenizer.tokenize(text_node_v)
+#                text_tokens_v = Tokenizer.clean_tokens(text_tokens_v)
+                text_tokens_u = text_node_u.split()
+                text_tokens_v = text_node_v.split()
+
+                # Debugging
 
                 # Attempt to align the sequences (by adding gaps where necessary)
+                # THIS HAS BEEN TEMPORARILY DISABLED
                 # Strip all tags and transform into the lower case
                 # Here is where the edit distance is to be inserted
                 text_tokens_u_len = len(text_tokens_u)

@@ -148,6 +148,8 @@ class CollateHandler(tornado.web.RequestHandler):
 
         stemma = Tokenizer.stemma({ 'node': base_text, 'id': 'base' }, witnesses)
 
+        # print stemma
+
         # Generate the collation
         collated_set = Collation(stemma)
         
@@ -164,6 +166,7 @@ class CollateHandler(tornado.web.RequestHandler):
 #                    print line_ngram_witness
 
         self.render("collate.html", collation=collated_set.values())
+        # return 'trace'
 
 class MainHandler(tornado.web.RequestHandler):
 

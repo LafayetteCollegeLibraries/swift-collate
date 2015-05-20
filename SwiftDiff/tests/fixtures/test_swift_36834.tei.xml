@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:lang="en">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt>
+        <title>AY <hi rend="underline">and</hi> NO: <hi rend="underline">A</hi> F<hi rend="SMALL-CAPS">ABLE</hi>.</title>
+        <sponsor>Lafayette College</sponsor>
+        <principal>James Woolley</principal>
+        <respStmt>
+          <name key="EWyble"/>
+          <resp>transcription</resp>
+        </respStmt>
+        <respStmt>
+          <resp>proof corrected</resp>
+          <resp>proof corrected</resp>
+          <name key="TNiese 25JA11"/>
+        </respStmt>
+      </titleStmt>
+      <publicationStmt>
+        <p>Distributed by Digital Scholarship Services at Lafayette College</p>
+      </publicationStmt>
+      <sourceDesc>
+        <msDesc>
+          <additional/>
+        </msDesc>
+      </sourceDesc>
+    </fileDesc>
+    <encodingDesc>
+      <editorialDecl>
+        <correction>
+          <p>To be drafted.</p>
+        </correction>
+        <normalization>
+          <p>To be drafted.</p>
+        </normalization>
+      </editorialDecl>
+    </encodingDesc>
+    <profileDesc>
+      <langUsage>
+        <language ident="en">English</language>
+      </langUsage>
+    </profileDesc>
+  </teiHeader>
+  <text>
+    <body>
+      <div type="book">
+        <div n="R56503P7" type="poem">
+      <head n="1"><lg n="1"/></head><head n="2"><lg n="1"/></head><head n="3"><lg n="1"/></head><lg n="1" type="triplet"><l n="1"><hi rend="display-initial">I</hi>N Fable all Things hold Discourse;</l><l n="2">Then <hi rend="underline">Words</hi>, no doubt, must talk of Course.</l>
+
+<l n="3" rend="indent(1)">O<hi rend="SMALL-CAPS">NCE</hi> on a Time, near <hi rend="underline">Channel-Row</hi>,</l>
+
+<l n="4">Two hostile Adverbs, <hi rend="underline">Ay</hi> and <hi rend="underline">No</hi>,</l><l n="5">Where hast'ning to the Field of Fight,</l><l n="6">And Front to Front stood opposite.</l><l n="7">Before each Gen'ral join'd the Van,</l><l n="8"><hi rend="underline">Ay</hi>, the more courteous Knight, began.</l><l n="9" rend="indent(1)">S<hi rend="SMALL-CAPS">TOP</hi>, peevish Particle, beware!</l><l n="10">I'm told you are not such a Bear,</l><l n="11">But sometimes <hi rend="underline">yield</hi>, when <hi rend="underline">offer'd fair</hi>.</l><l n="12">Suffer yon' Folks a While to tattle;</l><l n="13">'Tis <hi rend="underline">We</hi> who must decide the Battle.</l><l n="14">Whene'er we war on yonder Stage,</l><l n="15">With various Fate, and equal Rage,</l><l n="16">The Nation trembles at each Blow,</l><l n="17">That <hi rend="underline">No</hi> gives <hi rend="underline">Ay</hi>, and <hi rend="underline">Ay</hi> gives <hi rend="underline">No</hi>:</l><l n="18">Yet in expensive long Contention,</l><l n="19">We gain nor Office, Grant, or Pension.</l><l n="20">Why then shou'd <hi rend="underline">Kinsfolks</hi> quarrel thus?</l><l n="21">(For <hi rend="underline">Two</hi> of <hi rend="underline">You</hi> make <hi rend="underline">One</hi> of <hi rend="underline">Us</hi>.)</l><l n="22">To some wise Statesmen let us go,</l><l n="23">Where each his <hi rend="underline">proper Use</hi> may know.</l><l n="24">He may admit two such Commanders,</l><l n="25">And make those wait who serv'd in <hi rend="underline">Flanders</hi>.</l><l n="26">Let's quarter on a Great-Man's Tongue,</l><l n="27">A Treasury Lord, not Maister <hi rend="underline">Y────g</hi>.</l><l n="28">Obsequious at his high Command,</l><l n="29"><hi rend="underline">Ay</hi> shall march forth to Tax the Land.</l><l n="30">Impeachments <hi rend="underline">No</hi> can best resist,</l><l n="31">And <hi rend="underline">Ay</hi> support the Civil List:</l><l n="32"><hi rend="underline">Ay</hi>! quick as <hi rend="underline">Cæsar</hi> wins the Day;</l><l n="33">And <hi rend="underline">No</hi>, like <hi rend="underline">Fabius</hi>, by Delay.</l><l n="34">Sometimes in mutual sly Disguise,</l><l n="35">Let <hi rend="underline">Ay</hi>'s seem <hi rend="underline">No</hi>'s, and <hi rend="underline">No</hi>'s seem <hi rend="underline">I</hi>'s;</l><l n="36"><hi rend="underline">Ay</hi>'s be in Courts Denials meant,</l><l n="37">And <hi rend="underline">No</hi>'s in Bishops give Consent.</l><l n="38" rend="indent(1)">T<hi rend="SMALL-CAPS">HUS</hi><hi rend="underline">Ay</hi> propos'd────And, for Reply,</l><l n="39"><hi rend="underline">No</hi>, for the first Time, answer'd <hi rend="underline">I</hi>.</l><l n="40">They parted with a Thousand Kisses,</l><l n="41">And fight e'er since, for <hi rend="underline">Pay</hi>, like <hi rend="underline">Swisses</hi>.</l></lg></div>
+      </div>
+    </body>
+  </text>
+</TEI>

@@ -8,9 +8,8 @@ from lxml import etree
 import nltk
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from SwiftDiff.collation import Collation
-from SwiftDiff.tokenizer import Tokenizer
+from collation import Collation
+from tokenizer import Tokenizer
 
 class TestCollation:
 

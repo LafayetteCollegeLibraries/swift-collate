@@ -40,7 +40,8 @@ class Collation:
             # text = re.sub(r'^__?', '', text)
             text = text_token.value
 
-            # Avoid all non-lines
+            # This ensures that only <l> and <p> elements are analyzed (from the standpoint of syntactic and semantic relationships)
+            #
             # <lg/l n="2" />
             # <lg n="1"/l n="3" />
             # if re.match(r'^[lp]\s', xml):
@@ -144,10 +145,8 @@ class Collation:
 #                    print line_ngram_distances
 
                 else:
+
                     # All other features within any given line
-
-                    # print 'trace6'
-
                     # Each line contains multiple witnesses
                     if n in self._values['lines']:
 
@@ -180,10 +179,9 @@ class Collation:
 
                 i+=1
 
-        print 'Before sorting'
-#        print self._values.keys()
-        print self._values['lines'][3]['ngram']
-#        print 'trace4'
+        # @author griffinj@lafayette.edu
+        # Sorting functionality
+        # The following structures the collation tree in such a manner as to ensure that tokens and lines are ordered by their related witnesses
 
         # Sort by the n index
         sorted_values = {'lines': {}, 'witnesses': {}}

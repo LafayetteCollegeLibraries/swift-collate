@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="col-md-12">
+          <h2>Collation of Witnesses</h2>
+          <p>Witnesses are organized by line, with each line being further tokenized using a select algorithm.</p>
+
+	  {% for row,values in collation['lines'].iteritems() %}
+
+	  {% if 'line' in values %}
+	  <h2>Line {{ row }}</h2>
+
+	  {% if 'ngram' in values %}
+	  <h3>Line Tokens</h3>
+	  <table class="table table-striped">
+	    <thead>
+
+	      <th>Witness</th>
+
+	      <!-- Iterate through all of the tokens -->
+	      {% for i, token in enumerate(values['ngram'][values['ngram'].keys()[0]]) %}
+
+	      <th>Token {{ i }}</th>
+	      {% end %}
+	    </thead>
+
+	    <tbody>
+
+	      {% for line_ngram_witness, line_ngrams in values['ngram'].iteritems() %}
+
+	      <tr>
+		<th scope="row">{{ line_ngram_witness }}</th>
+
+	      {% for line_ngram in line_ngrams %}
+
+		<td>{{ line_ngram }}</td>
+	      {% end %}
+	      </tr>
+	      {% end %}
+	    </tbody>
+	  </table>
+	  {% end %}
+
+	  <h3>Line Variation</h3>
+	  <table class="table table-striped">
+	    <thead>
+	      <th>Line Number</th>
+	      <th>Witness</th>
+	      <th>Line Text</th>
+	      <th>Edit Distance</th>
+	    </thead>
+
+	    <tbody>
+	      {% for data in values['line'] %}
+	      <tr>
+		<th scope="row">{{ row }}</th>
+		<td>{{ escape(data['witness']) }}</td>
+		<td>{{ escape(data['text']) }}</td>
+		<td>{{ data['distance'] }}</td>
+	      </tr>
+	      {% end %}
+	    </tbody>
+	  </table>
+
+	  {% end %}
+
+	  {% end %}
+
+        </div>
+      </div>
+{% end %}
