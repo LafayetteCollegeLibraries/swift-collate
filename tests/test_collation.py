@@ -9,7 +9,10 @@ import nltk
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# from collation import Collation
 from SwiftDiff.collation import Collation
+
+# from tokenizer import Tokenizer
 from SwiftDiff.tokenizer import Tokenizer
 
 class TestCollation:
@@ -48,7 +51,6 @@ class TestCollation:
 
         file_paths = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['fixtures/test_tei_a.xml', 'fixtures/test_tei_b.xml', 'fixtures/test_tei_c.xml'])
 
-        # tei_stanzas = map(Tokenizer.parse_stanza, file_paths)
         tei_stanzas = map(Tokenizer.parse_text, file_paths)
 
         base_text = tei_stanzas.pop()
@@ -64,7 +66,6 @@ class TestCollation:
 
         file_paths = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['fixtures/test_tei_d.xml', 'fixtures/test_tei_e.xml', 'fixtures/test_tei_f.xml'])
 
-        # tei_stanzas = map(Tokenizer.parse_stanza, file_paths)
         tei_stanzas = map(Tokenizer.parse_text, file_paths)
 
         base_text = tei_stanzas.pop()
@@ -76,11 +77,9 @@ class TestCollation:
         return diff_tree
 
     @pytest.fixture()
-    def stemma_alignment_b(self, request):
+    def stemma_alignment_b(self):
 
         file_paths = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['fixtures/test_swift_36629.xml', 'fixtures/test_swift_36711.tei.xml'])
-
-        # tei_stanzas = map(Tokenizer.parse_stanza, file_paths)
         tei_stanzas = map(Tokenizer.parse_text, file_paths)
 
         base_text = tei_stanzas.pop()
@@ -91,9 +90,74 @@ class TestCollation:
 
         return diff_tree
 
-    def test_init(self, diff_tree):
+    @pytest.fixture()
+    def stemma_R565(self):
 
+        file_paths = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['fixtures/test_swift_36629.xml',
+                                                                                                       'fixtures/test_swift_36670.xml'])
+        tei_stanzas = map(Tokenizer.parse_text, file_paths)
+
+        base_text = tei_stanzas[0]
+        witnesses = [ { 'node': tei_stanzas[-1], 'id': "R56503P2" } ]
+
+        stemma_R565 = Tokenizer.stemma({ 'node': base_text, 'id': 'base' }, witnesses)
+        return stemma_R565
+
+    def test_init(self, diff_tree, stemma, stemma_R565):
+
+        # Base case
         collation = Collation(diff_tree)
+        collation_values = collation.values()
+
+        row_a = collation_values['lines'][5]
+        base_text_a = row_a['line'][0]
+
+        assert base_text_a['number'] == 5
+
+        # Case 1
+        collation_R565 = Collation(stemma_R565)
+        collation_R565_values = collation_R565.values()
+
+        collation_R565_lines = collation_R565_values['lines']
+
+        # Line 1
+        collation_R565_line_1 = collation_R565_lines[1]
+
+        collation_R565_line_1_ngrams_sorted = collation_R565_line_1['ngrams_sorted']
+
+        # ngrams within Line 1
+        base_ngrams = collation_R565_line_1_ngrams_sorted[0]
+
+        assert 'DISPLAY-INITIAL_CLASS_OPENIDISPLAY-INITIAL_CLASS_CLOSEDN' in base_ngrams['line_ngrams']
+        assert 'Discourse;' in base_ngrams['line_ngrams']
+
+        R56503P2_ngrams = collation_R565_line_1_ngrams_sorted[1]
+
+        assert 'DISPLAY-INITIAL_CLASS_OPENIDISPLAY-INITIAL_CLASS_CLOSEDN' in R56503P2_ngrams['line_ngrams']
+        assert 'Discourse;' in R56503P2_ngrams['line_ngrams']
+
+        # Line 3
+        collation_R565_line_3 = collation_R565_lines[3]
+
+        assert 'ngrams_sorted' in collation_R565_line_3
+
+        collation_R565_line_3_ngrams_sorted = collation_R565_line_3['ngrams_sorted']
+
+        # ngrams within Line 3
+        base_ngrams = collation_R565_line_3_ngrams_sorted[0]
+
+        # Once on a Time, near <hi rend="underline">Channel-Row
+        assert 'Once' in base_ngrams['line_ngrams']
+        assert 'UNDERLINE_CLASS_OPENChannel-Row_CLASS_CLOSED' in base_ngrams['line_ngrams']
+
+        # Once on a Time, near <hi rend="underline">Channel-Row</hi>
+        R56503P2_ngrams = collation_R565_line_3_ngrams_sorted[1]
+
+        assert 'Once' in R56503P2_ngrams['line_ngrams']
+        assert 'UNDERLINE_CLASS_OPENChannel-Row_CLASS_CLOSED' in R56503P2_ngrams['line_ngrams']
+
+        assert False
+
 
     def test_values_stemma(self, stemma):
 
@@ -104,9 +168,7 @@ class TestCollation:
 
         line_1 = lines[1]
 
-        # print line_1['ngram']
-        # print line_1['line']
-        # assert False
+    
 
     def test_stemma_alignment(self, stemma_alignment, stemma_alignment_b):
 
@@ -182,18 +244,3 @@ class TestCollation:
 #        assert row_b_ngrams['base'] == ['Piping', '', '', '', '', '']
 #        assert row_b_ngrams['v'] == ['', u'«gap»', 'songs', 'of', 'pleasant', 'glee']
 #        assert row_b_ngrams['u'] == ['', 'songs', 'of', 'pleasant', 'glee', ',']
-
-    def test_str(self, diff_tree):
-
-        collation = Collation(diff_tree)
-#        assert unicode(collation) == u"""{"1": [{"text": "Piping down the valleys wild, ", "number": 1, "witness": "u", "distance": 0}, {"text": "piping down the valleys wild, ", "number": 1, "witness": "v", "distance": 1}], "2": [{"text": "Piping songs of pleasant glee, ", "number": 2, "witness": "u", "distance": 0}, {"text": "PIPING SONGS OF PLEASANT GLEE, ", "number": 2, "witness": "v", "distance": 24}], "3": [{"text": "On a cloud I saw a child, ", "number": 3, "witness": "u", "distance": 0}, {"text": "On cloud I saw child ", "number": 3, "witness": "v", "distance": 5}], "4": [{"text": "And he laughing said to me: ", "number": 4, "witness": "u", "distance": 0}, {"text": "he laughing said me: ", "number": 4, "witness": "v", "distance": 7}]}"""
-#        assert str(collation) == """{"1": [{"text": "Piping down the valleys wild, ", "number": 1, "witness": "u", "distance": 0}, {"text": "piping down the valleys wild, ", "number": 1, "witness": "v", "distance": 1}], "2": [{"text": "Piping songs of pleasant glee, ", "number": 2, "witness": "u", "distance": 0}, {"text": "PIPING SONGS OF PLEASANT GLEE, ", "number": 2, "witness": "v", "distance": 24}], "3": [{"text": "On a cloud I saw a child, ", "number": 3, "witness": "u", "distance": 0}, {"text": "On cloud I saw child ", "number": 3, "witness": "v", "distance": 5}], "4": [{"text": "And he laughing said to me: ", "number": 4, "witness": "u", "distance": 0}, {"text": "he laughing said me: ", "number": 4, "witness": "v", "distance": 7}]}"""
-
-    def test_table(self, diff_tree):
-
-        collation = Collation(diff_tree)
-        collation_table = collation.table()
-
-        
-
-        pass

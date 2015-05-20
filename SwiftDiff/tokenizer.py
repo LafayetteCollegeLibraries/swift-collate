@@ -198,8 +198,6 @@ class ElementToken:
                 doc_markup = re.sub(feature_xml , string.upper(feature['text_token']) + u"_CLASS_OPEN", doc_markup)
             doc_markup = re.sub('</hi>', u"_CLASS_CLOSED", doc_markup)
 
-            print(doc_markup)
-
             new_doc = etree.fromstring(doc_markup)
             text = string.join(list(new_doc.itertext())) if new_doc.text is not None else ''
 
@@ -771,41 +769,73 @@ class Tokenizer:
                 # @todo Implement handling for addressing structural realignment between stanzas (this would likely lie within Tokenizer.parse_text)
                 if not elem_node_u in tree_v:
 
-                    continue
+                    print(elem_node_u)
+                    print(text_node_u)
+                    
+                    # Try to structurally align the lines by one stanza
+                    stanza_node_u_m = re.search('<lg n="(\d+)"/l n="(\d+)"', elem_node_u)
+                    if stanza_node_u_m:
 
-                text_nodes_v = tree_v[elem_node_u].keys()
+                        stanza_index = int(stanza_node_u_m.group(1))
+
+                        line_index = int(stanza_node_u_m.group(2))
+
+                        elem_node_u_incr = re.sub('lg n="(\d+)"', 'lg n="' + str(stanza_index + 1) + '"', elem_node_u)
+                        elem_node_u_decr = re.sub('lg n="(\d+)"', 'lg n="' + str(stanza_index - 1) + '"', elem_node_u)
+
+                        if elem_node_u_incr in tree_v:
+
+                            elem_node_v = tree_v[elem_node_u_incr]
+                        elif stanza_index > 0 and elem_node_u_decr in tree_v:
+
+                            elem_node_v = tree_v[elem_node_u_decr]
+                        else:
+
+                            continue
+
+                    else:
+                        
+                        # raise Exception("Failed to parse the XML for the following: " + elem_node_u)
+                        continue
+
+                else:
+
+                    elem_node_v = tree_v[elem_node_u]
+                    
+
+                text_nodes_v = elem_node_v.keys()
                 
                 text_node_v = string.join(text_nodes_v)
 
                 # If the text node has not been linked to the <l> node, attempt to match using normalization
 
 #                nodes_v_dist = 0
-#                if not text_node_v in tree_v[elem_node_u]:
+#                if not text_node_v in elem_node_v:
 
 #                    text_node_v = text_node_v.strip()
 #                    text_node_v_norm = re.sub(r'\s+', '', text_node_v)
 
-#                    for text_node_u in tree_v[elem_node_u].keys():
+#                    for text_node_u in elem_node_v.keys():
 
 #                        text_node_u_norm = re.sub(r'\s+', '', text_node_u)
 #                        if text_node_v_norm == text_node_u_norm:
 
-#                            nodes_v_dist = tree_v[elem_node_u][text_node_u]['distance']
+#                            nodes_v_dist = elem_node_v[text_node_u]['distance']
 
-#                    if not text_node_v in tree_v[elem_node_u]:
+#                    if not text_node_v in elem_node_v:
 
 #                        nodes_v_dist = 0
 #                    if nodes_v_dist is None:
 
-#                        raise Exception('Could not match the variant text string :"' + text_node_v + '" to those in the base: ' + string.join(tree_v[elem_node_u].keys()) )
+#                        raise Exception('Could not match the variant text string :"' + text_node_v + '" to those in the base: ' + string.join(elem_node_v.keys()) )
 #                else:
 
-                if not text_node_v in tree_v[elem_node_u]:
+                if not text_node_v in elem_node_v:
 
                     nodes_v_dist = 0
                 else:
 
-                    nodes_v_dist = tree_v[elem_node_u][text_node_v]['distance']
+                    nodes_v_dist = elem_node_v[text_node_v]['distance']
 
                 # Just add the edit distance
                 edit_dist = nodes_u_dist + nodes_v_dist + nltk.metrics.distance.edit_distance(text_node_u, text_node_v)

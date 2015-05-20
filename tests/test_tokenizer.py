@@ -102,9 +102,47 @@ class TestTokenizer:
 
         return elem
 
+    @pytest.fixture
+    def tei_doc_R56503P1(self):
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/test_swift_36629.xml')) as f:
+
+            data = f.read()
+            doc = etree.fromstring(data)
+            # elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            # elem = elems.pop()
+
+        return doc
+
+    @pytest.fixture
+    def tei_doc_R56503P2(self):
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/test_swift_36670.xml')) as f:
+
+            data = f.read()
+            doc = etree.fromstring(data)
+            # elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            # elem = elems.pop()
+
+        # return elem
+        return doc
+
     def test_init(self):
 
         pass
+
+    # Case 1
+    def test_text_tree_R56503P1(self, tei_doc_R56503P1):
+
+        tree = Tokenizer.text_tree(tei_doc_R56503P1)
+
+        assert '<lg n="2"/l n="3" />' in tree
+
+    def test_text_tree_R56503P2(self, tei_doc_R56503P2):
+
+        tree = Tokenizer.text_tree(tei_doc_R56503P2)
+
+        assert '<lg n="1"/l n="3" />' in tree
 
     def test_parse(self, tei_doc):
 
@@ -148,6 +186,47 @@ class TestTokenizer:
         witnesses = [ { 'node': tei_doc_b, 'id': 'b' }, { 'node': tei_doc_c, 'id': 'c' } ]
 
         stemma = Tokenizer.stemma(base_text, witnesses)
+
+    # Case 1
+    def test_diff_R565(self, tei_doc_R56503P1, tei_doc_R56503P2):
+
+        diff_tree = Tokenizer.diff(tei_doc_R56503P1, 'R56503P1',
+                                   tei_doc_R56503P2, 'R56503P2')
+
+        assert '<lg n="1"/l n="3" />' in diff_tree
+        assert '<lg n="2"/l n="3" />' in diff_tree
+
+    # Case 1
+    def test_stemma_R565(self, tei_doc_R56503P1, tei_doc_R56503P2):
+
+        base_text = { 'node': tei_doc_R56503P1, 'id': 'base' }
+        witnesses = [ { 'node': tei_doc_R56503P2, 'id': "R56503P2" } ]
+        stemma = Tokenizer.stemma(base_text, witnesses)
+
+        edges = stemma.edges()
+
+        assert '<lg n="1"/l n="3" />' in stemma
+        variants = stemma['<lg n="1"/l n="3" />'].items()
+
+        variant = variants[0]
+
+        # Anomaly of the NetworkX API
+        text_token = variant[0]
+        assert text_token.value == ''
+
+        variant = variants[1]
+
+        # Anomaly of the NetworkX API
+        text_token = variant[0]
+        assert text_token.value == 'INDENT_ELEMENTOnce on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
+
+        # Handling for structural differences between texts must be implemented here
+        assert '<lg n="2"/l n="3" />' in stemma
+        variants = stemma['<lg n="2"/l n="3" />'].items()
+
+        print(variants)
+
+        assert False
 
     def test_stemma_alignment(self, tei_doc_d, tei_doc_e, tei_doc_f):
 
