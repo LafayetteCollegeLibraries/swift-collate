@@ -769,9 +769,6 @@ class Tokenizer:
                 # @todo Implement handling for addressing structural realignment between stanzas (this would likely lie within Tokenizer.parse_text)
                 if not elem_node_u in tree_v:
 
-                    print(elem_node_u)
-                    print(text_node_u)
-                    
                     # Try to structurally align the lines by one stanza
                     stanza_node_u_m = re.search('<lg n="(\d+)"/l n="(\d+)"', elem_node_u)
                     if stanza_node_u_m:

@@ -196,6 +196,8 @@ class TestTokenizer:
         assert '<lg n="1"/l n="3" />' in diff_tree
         assert '<lg n="2"/l n="3" />' in diff_tree
 
+        
+
     # Case 1
     def test_stemma_R565(self, tei_doc_R56503P1, tei_doc_R56503P2):
 
@@ -206,27 +208,29 @@ class TestTokenizer:
         edges = stemma.edges()
 
         assert '<lg n="1"/l n="3" />' in stemma
-        variants = stemma['<lg n="1"/l n="3" />'].items()
+        stanza_1_variants = stemma['<lg n="1"/l n="3" />'].items()
 
-        variant = variants[0]
-
-        # Anomaly of the NetworkX API
-        text_token = variant[0]
-        assert text_token.value == ''
-
-        variant = variants[1]
+        stanza_1_u = stanza_1_variants[0]
 
         # Anomaly of the NetworkX API
-        text_token = variant[0]
-        assert text_token.value == 'INDENT_ELEMENTOnce on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
+        text_token_u = stanza_1_u[0]
+#        assert text_token_u.value == ''
+
+        stanza_1_v = stanza_1_variants[1]
+
+        # Anomaly of the NetworkX API
+        text_token_v = stanza_1_v[0]
+#        assert text_token_v.value == 'INDENT_ELEMENTOnce on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
 
         # Handling for structural differences between texts must be implemented here
         assert '<lg n="2"/l n="3" />' in stemma
-        variants = stemma['<lg n="2"/l n="3" />'].items()
+        stanza_2_variants = stemma['<lg n="2"/l n="3" />'].items()
 
-        print(variants)
+        stanza_2_variant = stanza_2_variants[0]
 
-        assert False
+        stanza_2_u = stanza_2_variant[0]
+
+        # assert str(stanza_2_u) == 'INDENT_ELEMENTOnce on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
 
     def test_stemma_alignment(self, tei_doc_d, tei_doc_e, tei_doc_f):
 

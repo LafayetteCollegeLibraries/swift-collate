@@ -147,17 +147,14 @@ class TestCollation:
         base_ngrams = collation_R565_line_3_ngrams_sorted[0]
 
         # Once on a Time, near <hi rend="underline">Channel-Row
-        assert 'Once' in base_ngrams['line_ngrams']
-        assert 'UNDERLINE_CLASS_OPENChannel-Row_CLASS_CLOSED' in base_ngrams['line_ngrams']
+        assert 'INDENT_ELEMENTOnce' in base_ngrams['line_ngrams']
+        assert 'UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,' in base_ngrams['line_ngrams']
 
         # Once on a Time, near <hi rend="underline">Channel-Row</hi>
         R56503P2_ngrams = collation_R565_line_3_ngrams_sorted[1]
 
-        assert 'Once' in R56503P2_ngrams['line_ngrams']
-        assert 'UNDERLINE_CLASS_OPENChannel-Row_CLASS_CLOSED' in R56503P2_ngrams['line_ngrams']
-
-        assert False
-
+        assert 'INDENT_ELEMENTOnce' in R56503P2_ngrams['line_ngrams']
+        assert 'UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,' in R56503P2_ngrams['line_ngrams']
 
     def test_values_stemma(self, stemma):
 
