@@ -109,9 +109,6 @@ class TestTokenizer:
 
             data = f.read()
             doc = etree.fromstring(data)
-            # elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
-            # elem = elems.pop()
-
         return doc
 
     @pytest.fixture
@@ -121,28 +118,45 @@ class TestTokenizer:
 
             data = f.read()
             doc = etree.fromstring(data)
-            # elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
-            # elem = elems.pop()
-
-        # return elem
         return doc
+
+    @pytest.fixture
+    def tei_doc_R56503P3(self):
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/test_swift_36711.tei.xml')) as f:
+
+            data = f.read()
+            doc = etree.fromstring(data)
+        return doc
+
+    # test_swift_36711.tei.xml
 
     def test_init(self):
 
         pass
 
-    # Case 1
-    def test_text_tree_R56503P1(self, tei_doc_R56503P1):
+    # Tokenizer.text_tree()
+    #
+    # Verifies the structure of the graph modeling the tree of structure of the TEI-XML Document
+    def test_text_tree(self, tei_doc_R56503P1, tei_doc_R56503P2, tei_doc_R56503P3):
 
+        # Case 1
         tree = Tokenizer.text_tree(tei_doc_R56503P1)
 
+        assert '<lg n="1"/l n="3" />' in tree
         assert '<lg n="2"/l n="3" />' in tree
-
-    def test_text_tree_R56503P2(self, tei_doc_R56503P2):
 
         tree = Tokenizer.text_tree(tei_doc_R56503P2)
 
         assert '<lg n="1"/l n="3" />' in tree
+
+        # Case 2
+        tree = Tokenizer.text_tree(tei_doc_R56503P3)
+
+        assert '<lg n="1"/l n="3" />' in tree
+        assert '<lg n="2"/l n="3" />' in tree
+
+    # Case 2
 
     def test_parse(self, tei_doc):
 
@@ -172,23 +186,16 @@ class TestTokenizer:
 #        assert diff_tree['<l n="3" />']['On a cloud I saw a child, ']['distance'] == nltk.metrics.distance.edit_distance('On a cloud I saw a child, ', 'On a cloud I  saw  a child, ')
 #        assert diff_tree['<l n="4" />']['And he laughing said to me: ']['distance'] == nltk.metrics.distance.edit_distance('And he laughing said to me: ', 'And he laughing said to me: ')
 
-    def test_text_diff(self, tei_doc_a, tei_doc_b, tei_doc_c):
+    # Tokenizer.diff()
+    #
+    # Verifies the structure of the graph modeling a stemmatic tree capturing the textual differences between two (and only two) TEI Documents
+    def test_diff(self, tei_doc_a, tei_doc_c, tei_doc_R56503P1, tei_doc_R56503P2):
 
         tokenizer = Tokenizer()
 
         diff_tree = Tokenizer.diff(tei_doc_a, 'a', tei_doc_c, 'c')
 
-    def test_stemma(self, tei_doc_a, tei_doc_b, tei_doc_c):
-
-        tokenizer = Tokenizer()
-
-        base_text = { 'node': tei_doc_a, 'id': 'a' }
-        witnesses = [ { 'node': tei_doc_b, 'id': 'b' }, { 'node': tei_doc_c, 'id': 'c' } ]
-
-        stemma = Tokenizer.stemma(base_text, witnesses)
-
-    # Case 1
-    def test_diff_R565(self, tei_doc_R56503P1, tei_doc_R56503P2):
+        assert diff_tree is not None
 
         diff_tree = Tokenizer.diff(tei_doc_R56503P1, 'R56503P1',
                                    tei_doc_R56503P2, 'R56503P2')
@@ -196,19 +203,28 @@ class TestTokenizer:
         assert '<lg n="1"/l n="3" />' in diff_tree
         assert '<lg n="2"/l n="3" />' in diff_tree
 
-        
+    # Tokenizer.stemma()
+    #
+    # Verifies the structure of the graph modeling a stemmatic tree capturing the textual differences between two or more TEI Documents
+    def test_stemma(self, tei_doc_a, tei_doc_b, tei_doc_c, tei_doc_R56503P1, tei_doc_R56503P2, tei_doc_R56503P3):
 
-    # Case 1
-    def test_stemma_R565(self, tei_doc_R56503P1, tei_doc_R56503P2):
+        tokenizer = Tokenizer()
 
+        base_text = { 'node': tei_doc_a, 'id': 'a' }
+        witnesses = [ { 'node': tei_doc_b, 'id': 'b' }, { 'node': tei_doc_c, 'id': 'c' } ]
+
+        # stemma = Tokenizer.stemma(base_text, witnesses)
+
+        ####
         base_text = { 'node': tei_doc_R56503P1, 'id': 'base' }
-        witnesses = [ { 'node': tei_doc_R56503P2, 'id': "R56503P2" } ]
+        witnesses = [ { 'node': tei_doc_R56503P2, 'id': "R56503P2" }, { 'node': tei_doc_R56503P3, 'id': "R56503P3" } ]
         stemma = Tokenizer.stemma(base_text, witnesses)
 
-        edges = stemma.edges()
-
         assert '<lg n="1"/l n="3" />' in stemma
-        stanza_1_variants = stemma['<lg n="1"/l n="3" />'].items()
+        stanza_1_variants = map(list, stemma['<lg n="1"/l n="3" />'].items())
+
+        # print(stanza_1_variants)
+        assert len(stanza_1_variants) == 3
 
         stanza_1_u = stanza_1_variants[0]
 
@@ -222,6 +238,8 @@ class TestTokenizer:
         text_token_v = stanza_1_v[0]
 #        assert text_token_v.value == 'INDENT_ELEMENTOnce on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
 
+        stanza_1_w = stanza_1_variants[2]
+
         # Handling for structural differences between texts must be implemented here
         assert '<lg n="2"/l n="3" />' in stemma
         stanza_2_variants = stemma['<lg n="2"/l n="3" />'].items()
@@ -231,6 +249,8 @@ class TestTokenizer:
         stanza_2_u = stanza_2_variant[0]
 
         # assert str(stanza_2_u) == 'INDENT_ELEMENTOnce on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
+
+        
 
     def test_stemma_alignment(self, tei_doc_d, tei_doc_e, tei_doc_f):
 

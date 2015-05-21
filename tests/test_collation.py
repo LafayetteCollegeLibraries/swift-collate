@@ -94,11 +94,13 @@ class TestCollation:
     def stemma_R565(self):
 
         file_paths = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['fixtures/test_swift_36629.xml',
-                                                                                                       'fixtures/test_swift_36670.xml'])
+                                                                                                       'fixtures/test_swift_36670.xml',
+                                                                                                       'fixtures/test_swift_36711.tei.xml'])
         tei_stanzas = map(Tokenizer.parse_text, file_paths)
 
         base_text = tei_stanzas[0]
-        witnesses = [ { 'node': tei_stanzas[-1], 'id': "R56503P2" } ]
+        witnesses = [ { 'node': tei_stanzas[-2], 'id': "R56503P2" },
+                      { 'node': tei_stanzas[-1], 'id': "R56503P3" } ]
 
         stemma_R565 = Tokenizer.stemma({ 'node': base_text, 'id': 'base' }, witnesses)
         return stemma_R565
@@ -126,15 +128,20 @@ class TestCollation:
         collation_R565_line_1_ngrams_sorted = collation_R565_line_1['ngrams_sorted']
 
         # ngrams within Line 1
+
+        # ngrams from the base text
         base_ngrams = collation_R565_line_1_ngrams_sorted[0]
 
         assert 'DISPLAY-INITIAL_CLASS_OPENIDISPLAY-INITIAL_CLASS_CLOSEDN' in base_ngrams['line_ngrams']
         assert 'Discourse;' in base_ngrams['line_ngrams']
 
+        # ngrams from the variant R56503P2
         R56503P2_ngrams = collation_R565_line_1_ngrams_sorted[1]
 
         assert 'DISPLAY-INITIAL_CLASS_OPENIDISPLAY-INITIAL_CLASS_CLOSEDN' in R56503P2_ngrams['line_ngrams']
         assert 'Discourse;' in R56503P2_ngrams['line_ngrams']
+
+        
 
         # Line 3
         collation_R565_line_3 = collation_R565_lines[3]
@@ -144,17 +151,26 @@ class TestCollation:
         collation_R565_line_3_ngrams_sorted = collation_R565_line_3['ngrams_sorted']
 
         # ngrams within Line 3
+
+        # ngrams from the base text
         base_ngrams = collation_R565_line_3_ngrams_sorted[0]
 
-        # Once on a Time, near <hi rend="underline">Channel-Row
         assert 'INDENT_ELEMENTOnce' in base_ngrams['line_ngrams']
         assert 'UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,' in base_ngrams['line_ngrams']
 
-        # Once on a Time, near <hi rend="underline">Channel-Row</hi>
+        # ngrams from the variant R56503P3
         R56503P2_ngrams = collation_R565_line_3_ngrams_sorted[1]
 
         assert 'INDENT_ELEMENTOnce' in R56503P2_ngrams['line_ngrams']
         assert 'UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,' in R56503P2_ngrams['line_ngrams']
+
+        # ngrams from the variant R56503P3
+        R56503P2_ngrams = collation_R565_line_3_ngrams_sorted[2]
+
+        print(collation_R565_line_3_ngrams_sorted[2])
+
+        assert 'INDENT_ELEMENTOSMALL-CAPS_CLASS_OPENNCESMALL-CAPS_CLASS_CLOSED' in R56503P2_ngrams['line_ngrams']
+
 
     def test_values_stemma(self, stemma):
 

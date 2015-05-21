@@ -680,7 +680,41 @@ class Tokenizer:
 
             diff_tree = nx.compose(diff_tree, diff_u_v_tree)
 
-        return diff_tree
+        # Merging the bases manually is necessary (given that each TextToken Object is a unique key for the graph structure
+        # @todo Investigate cases in which TextToken Objects can be reduced simply to string Objects
+        # (Unfortunately, the problem still exists in which identical string content between lines can lead to collisions within the graph structure)
+        edges = diff_tree.edges()
+        filtered_edges = []
+        filtered_diff_tree = nx.Graph()
+
+        base_line_edges = []
+
+        for edge in edges:
+
+            u = edge[0]
+
+            filtered_edge = []
+
+            for edge_item in diff_tree[u].items(): # For each edge between the line expression u and the related TextNodes...
+
+                line_text = edge_item[0]
+                line_attributes = edge_item[-1]
+                if(line_attributes['feature'] == 'line' and line_attributes['witness'] == 'base'): # Ensure that lines are index uniquely
+
+                    if not unicode(u) in base_line_edges:
+
+                        base_line_edges.append(unicode(u))
+                        filtered_diff_tree.add_edge(u, line_text, line_attributes)
+
+                else:
+
+                    # filtered_edge.append(edge_item)
+                    filtered_diff_tree.add_edge(u, line_text, line_attributes)
+
+        # return diff_tree
+        # filtered_diff_tree.add_edges_from(tuple(filtered_edges))
+        
+        return filtered_diff_tree
 
     @staticmethod
     def clean_tokens(tokens):
