@@ -496,13 +496,29 @@ class Tokenizer:
 
         return token_tree
 
+    @staticmethod
+    def parse_child(child):
+        
+        child_text = child.text if child.text is not None else ''
+        child_tail = child.tail if child.tail is not None else ''
+
+        output = child_text + child_tail
+
+        if child.xpath('local-name()') == 'gap':
+
+            output = child.xpath('local-name()').upper() + u"_ELEMENT" + child_tail
+
+        elif child.get('rend'):
+
+            # output = child.get('rend').upper() + u"_CLASS_OPEN" + output + child.get('rend').upper() + u"_CLASS_CLOSED"
+            output = child.get('rend').upper() + u"_CLASS_OPEN" + child_text + child.get('rend').upper() + u"_CLASS_CLOSED" + child_tail
+
+        return output
+
     # Construct the Document tree
     # The root node should be a <lg> node
     @staticmethod
     def parse(node, name=''):
-
-#        print 'trace4'
-#        print etree.tostring(node)
 
         # Initialize an undirected graph for the tree, setting the root node to the lxml node
         token_tree = nx.Graph()
@@ -567,10 +583,35 @@ class Tokenizer:
         # Handling for typographic feature (e. g. <hi />) and editorial elements (e. g. <gap />)
         # Leave intact; Prefer transformation into HTML5 using XSL Stylesheets
 
+        # Debug
+        # <l xmlns="http://www.tei-c.org/ns/1.0" rend="indent(1)" n="3">Once on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,</l>
+#        if node.get('n') == '3':
+
+#            print(etree.tostring(node))
+
+        # print( node.xpath('local-name()') )
+        # print( node.xpath('.') )
+
+# before
+# <hi xmlns="http://www.tei-c.org/ns/1.0" rend="SMALL-CAPS">NCE</hi> on a Time, near 
+# <l xmlns="http://www.tei-c.org/ns/1.0" rend="indent(1)" n="3">UNDERLINE_CLASS_OPENChannel-Row_CLASS_CLOSED,<hi rend="SMALL-CAPS">NCE</hi> on a Time, near </l>
+# after
+# <l xmlns="http://www.tei-c.org/ns/1.0" rend="indent(1)" n="3">SMALL-CAPS_CLASS_OPENNCE_CLASS_CLOSED on a Time, near <hi rend="SMALL-CAPS">NCE</hi> on a Time, near </l>
+
+#                    parent_markup = re.sub('<hi xmlns="http://www.tei-c.org/ns/1.0" rend="' + feature_token + '">', feature_token.upper() + u"_CLASS_OPEN", parent_markup)
+#                    parent_markup = re.sub('<hi rend="' + feature_token + '">', feature_token.upper() + u"_CLASS_OPEN", parent_markup)
+#                    parent_markup = re.sub('</hi>', u"_CLASS_CLOSED", parent_markup)
+
+        # print( node )
+        # print( etree.tostring(node) )
+
         for feature in [{'xpath': '//tei:hi[@rend="italic"]', 'text_token': 'italic', 'tag': 'hiitalic'},
                         {'xpath': '//tei:hi[@rend="display-initial"]', 'text_token': 'display-initial', 'tag': 'hidisplay-italic'},
                         {'xpath': '//tei:hi[@rend="underline"]', 'text_token': 'underline', 'tag': 'hiunderline'},
-                        {'xpath': '//tei:hi[@rend="SMALL-CAPS"]', 'text_token': 'small-caps', 'tag': 'hismall-caps'},
+
+                        # {'xpath': '//tei:hi[@rend="SMALL-CAPS"]', 'text_token': 'small-caps', 'tag': 'hismall-caps'},
+                        {'xpath': '//tei:hi[@rend="SMALL-CAPS"]', 'text_token': 'SMALL-CAPS', 'tag': 'hismall-caps'},
+
                         {'xpath': '//tei:hi[@rend="sup"]', 'text_token': 'superscript', 'tag': 'hisuperscript'},
                         {'xpath': '//tei:hi[@rend="black-letter"]', 'text_token': 'black-letter', 'tag': 'hiblack-letter'},
                         {'xpath': '//tei:gap', 'text_token': 'gap', 'tag': 'gap'}]:
@@ -579,52 +620,38 @@ class Tokenizer:
             feature_token = feature['text_token']
             feature_tag = feature['tag']
 
-            for feature_element in node.xpath(feature_xpath, namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}):
+            feature_elements = node.xpath(feature_xpath, namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            # feature_elements = [ feature_elements[0] ] if len(feature_elements) > 0 else []
+
+            for feature_element in feature_elements:
+
+                # print(feature_element)
+                # print(node.xpath('.'))
 
                 # Ensure that all text trailing the feature_element element is preserved
                 parent = feature_element.getparent()
 
-                feature_element_text = '' if feature_element.text is None else feature_element.text
+#                print( etree.tostring(parent) )
 
-                # Work-around for lxml
-                if parent.text is None: parent.text = ''
-                feature_element_tail = '' if feature_element.tail is None else feature_element.tail
+                parent_tail = parent.tail if parent.tail is not None else ''
 
-                if feature_element_text:
-
-                    parent_text = parent.text
-
-                    i = 0
-                    sub_elements = list(parent.iterchildren())
-                    while i < len(sub_elements) - 1:
-
-                        sub_element = sub_elements[i]
-                        sub_element_id = sub_element.xpath('local-name()') + ( sub_element.get('rend') or '' )
-
-                        if sub_element_id == feature_tag:
-
-                            parent_text += feature_token.upper() + u"_CLASS_OPEN" + (sub_element.text or '') + feature_token.upper() + u"_CLASS_CLOSED" + (sub_element.tail or '')
-                        i+=1
-
-                    parent_text += ( parent.tail or '' )
-                    parent.text = parent_text
-
-                    ## parent.text += u"«" + feature_token + u"»" + feature_element_text + u"«" + feature_token + u"»" + feature_element_tail
-                    parent.text += feature_token.upper() + u"_CLASS_OPEN" + ( feature_element_text or '' ) + feature_token.upper() + u"_CLASS_CLOSED" + ( feature_element_tail or '' )
-
-                    parent_text = parent.text
-
-                else:
-
-                    ## parent.text += u"«" + feature_token + u"»" + feature_element_tail
-#                    parent.text += feature_token.upper() + u"_ELEMENT" + feature_element_tail
-                    pass
-
-                # Remove the feature_element itself
+                parent_text = unicode(parent.text) + string.join(map( Tokenizer.parse_child, list(parent.iterchildren())), '') + parent_tail
                 feature_element.getparent().remove(feature_element)
 
+#                print('trace')
+#                print( parent_text )
+
+                parent.text = parent_text
+                
+
         token_tree_root = ElementToken(doc=node)
-#        print etree.tostring(node)
+
+        # Debug
+        # <l xmlns="http://www.tei-c.org/ns/1.0" rend="indent(1)" n="3">Once on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,</l>
+#        if node.get('n') == '3':
+
+#            print(etree.tostring(node))
+#            print( token_tree_root.text )
 
         # For the text of the node, use the PunktWordTokenizer to tokenize the text
         # Ensure that each tokenized n-gram is linked to the lxml token for the tree:

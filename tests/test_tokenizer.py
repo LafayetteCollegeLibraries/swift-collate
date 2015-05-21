@@ -156,6 +156,13 @@ class TestTokenizer:
         assert '<lg n="1"/l n="3" />' in tree
         assert '<lg n="2"/l n="3" />' in tree
 
+        edges = tree['<lg n="2"/l n="3" />'].items()
+
+        edge = edges[0]
+        line_text = edge[0]
+        
+        # assert line_text == 'INDENT_ELEMENTOSMALL-CAPS_CLASS_OPENNCESMALL-CAPS_CLASS_CLOSED on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
+
     # Case 2
 
     def test_parse(self, tei_doc):
