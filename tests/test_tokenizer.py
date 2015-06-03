@@ -165,16 +165,21 @@ class TestTokenizer:
 
     # Case 2
 
-    def test_parse(self, tei_doc):
+    def test_parse(self, tei_doc, tei_doc_R56503P2, tei_doc_R56503P3):
 
-        tokenizer = Tokenizer()
         tree = Tokenizer.parse(tei_doc)
 
-#        assert tree.has_edge('<lg n="1"/l n="1" />', 'Piping down the valleys wild, ')
+        elems = tei_doc_R56503P3.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
 
-#        assert tree.has_edge('<lg n="1"/l n="2" />', 'Piping songs of pleasant glee, ')
-#        assert tree.has_edge('<lg n="1"/l n="3" />', 'On a cloud I saw a child, ')
-#        assert tree.has_edge('<lg n="1"/l n="4" />', 'And he laughing said to me: ')
+        tree_2 = Tokenizer.parse(elems[3])
+        line_2_text = tree_2['<lg n="1"/l n="2" />'].keys()[0]
+
+        assert line_2_text == 'Then UNDERLINE_CLASS_OPENWordsUNDERLINE_CLASS_CLOSED, no doubt, must talk of Course.'
+
+        tree_3b = Tokenizer.parse(elems[4])
+        line_3_text = tree_3b['<lg n="2"/l n="3" />'].keys()[0]
+        
+        assert line_3_text == 'INDENT_ELEMENTOSMALL-CAPS_CLASS_OPENNCESMALL-CAPS_CLASS_CLOSED on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
 
     def test_stanza_diff(self, tei_doc_a, tei_doc_b):
 

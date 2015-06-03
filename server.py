@@ -115,8 +115,9 @@ class CollateHandler(tornado.web.RequestHandler):
                                                                                                  'tests/fixtures/test_swift_36940.tei.xml',
                                                                                                  'tests/fixtures/test_swift_36834.tei.xml',
                                                                                                  ])
-        # ids = map(str, range(1, len(uris)))
-        ids = ["R56503P1",
+
+        ids = [
+            # "R56503P1",
                "R56503P2",
                "R56503P3",
                "R56503P4",
@@ -145,7 +146,7 @@ class CollateHandler(tornado.web.RequestHandler):
 
             witnesses.append( { 'node': node, 'id': _id } )
 
-        stemma = Tokenizer.stemma({ 'node': base_text, 'id': 'base' }, witnesses)
+        stemma = Tokenizer.stemma({ 'node': base_text, 'id': 'R56503P1' }, witnesses)
 
         # print stemma
 

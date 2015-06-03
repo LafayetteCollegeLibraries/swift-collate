@@ -78,6 +78,7 @@ class TestTokenizer:
             elem = elems.pop()
 
         return elem
+
     @pytest.fixture
     def tei_doc_e(self):
 
@@ -89,6 +90,7 @@ class TestTokenizer:
             elem = elems.pop()
 
         return elem
+
     @pytest.fixture
     def tei_doc_f(self):
 
@@ -101,11 +103,35 @@ class TestTokenizer:
 
         return elem
 
+    @pytest.fixture
+    def tei_swift_R56503P1(self):
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/test_swift_36629.xml')) as f:
+
+            data = f.read()
+            doc = etree.fromstring(data)
+            elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            elem = elems.pop()
+
+        return elem
+
+    @pytest.fixture
+    def tei_swift_R56503P3(self):
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/test_swift_36711.tei.xml')) as f:
+
+            data = f.read()
+            doc = etree.fromstring(data)
+            elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            elem = elems.pop()
+
+        return elem
+
     def test_init(self):
 
         pass
 
-    def test_parse(self, tei_doc):
+    def test_parse(self, tei_doc, tei_swift_R56503P1, tei_swift_R56503P3):
 
         tokenizer = Tokenizer()
         tree = Tokenizer.parse(tei_doc)
@@ -115,6 +141,9 @@ class TestTokenizer:
 #        assert tree.has_edge('<lg n="1"/l n="2" />', 'Piping songs of pleasant glee, ')
 #        assert tree.has_edge('<lg n="1"/l n="3" />', 'On a cloud I saw a child, ')
 #        assert tree.has_edge('<lg n="1"/l n="4" />', 'And he laughing said to me: ')
+
+        # Test for structural alignment
+        tree_2 = Tokenizer.parse(tei_doc)
 
     def test_stanza_diff(self, tei_doc_a, tei_doc_b):
 

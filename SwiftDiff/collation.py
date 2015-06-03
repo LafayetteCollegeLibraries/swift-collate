@@ -20,6 +20,9 @@ class Collation:
 
         self.doc = self.parse()
 
+    # Sort the collation (in order to structure the JSON Objects)
+    # @param line_ngram_distances The distances of ngrams related to each line
+    #
     def sort(self, line_ngram_distances):
 
         # @author griffinj@lafayette.edu
@@ -140,6 +143,8 @@ class Collation:
 
         self._values = sorted_values
 
+    # Iterate through each edge of the directed graph, and generate the values for the text tokens
+    #
     def parse(self):
 
         # Iterate through the tree in order to generate the values

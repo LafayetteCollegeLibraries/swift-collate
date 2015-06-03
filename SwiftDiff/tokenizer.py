@@ -193,10 +193,8 @@ class ElementToken:
 
                 feature_xml = feature['xml']
 
-#                doc_markup = re.sub(feature_xml + '(.+?)' + '</hi>', u"_CLASS_OPEN\\1_CLASS_CLOSED", doc_markup)
-#                doc_markup = re.sub(feature_xml + '(.+?)', u"_CLASS_OPEN\\1", doc_markup)
                 doc_markup = re.sub(feature_xml , string.upper(feature['text_token']) + u"_CLASS_OPEN", doc_markup)
-            doc_markup = re.sub('</hi>', u"_CLASS_CLOSED", doc_markup)
+            doc_markup = re.sub('</hi>', u"_CLASS_CLOSED_1", doc_markup)
 
             new_doc = etree.fromstring(doc_markup)
             text = string.join(list(new_doc.itertext())) if new_doc.text is not None else ''
@@ -510,7 +508,6 @@ class Tokenizer:
 
         elif child.get('rend'):
 
-            # output = child.get('rend').upper() + u"_CLASS_OPEN" + output + child.get('rend').upper() + u"_CLASS_CLOSED"
             output = child.get('rend').upper() + u"_CLASS_OPEN" + child_text + child.get('rend').upper() + u"_CLASS_CLOSED" + child_tail
 
         return output
@@ -525,8 +522,31 @@ class Tokenizer:
 
         token_tree.name = name
 
+        # Parsing must be restricted to the '<l>' and '<p>' depth
+        # @todo Refactor
+        if node.xpath('local-name()') not in ['l', 'p']:
+
+            children = list(node)
+        
+            # If the lxml has no more nodes, return the tree
+            if len(children) == 0:
+
+                return token_tree
+
+            sub_trees = map(Tokenizer.parse, children)
+
+            for sub_tree in map(Tokenizer.parse, children):
+
+                token_tree = nx.compose(token_tree, sub_tree)
+
+            return token_tree
+
         # Parsing node content
         #
+        node_tail = '' if node.tail is None else node.tail
+        node_text_head = unicode(node.text) if node.text is not None else ''
+        node_text = node_text_head + string.join(map( Tokenizer.parse_child, list(node.iterchildren())), '') + node_tail
+        node.text = node_text
 
 #        node_markup = etree.tostring(node)
 #        for feature in [{'xml': '<hi rend="italic">', 'text_token': 'italic'},
@@ -583,15 +603,6 @@ class Tokenizer:
         # Handling for typographic feature (e. g. <hi />) and editorial elements (e. g. <gap />)
         # Leave intact; Prefer transformation into HTML5 using XSL Stylesheets
 
-        # Debug
-        # <l xmlns="http://www.tei-c.org/ns/1.0" rend="indent(1)" n="3">Once on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,</l>
-#        if node.get('n') == '3':
-
-#            print(etree.tostring(node))
-
-        # print( node.xpath('local-name()') )
-        # print( node.xpath('.') )
-
 # before
 # <hi xmlns="http://www.tei-c.org/ns/1.0" rend="SMALL-CAPS">NCE</hi> on a Time, near 
 # <l xmlns="http://www.tei-c.org/ns/1.0" rend="indent(1)" n="3">UNDERLINE_CLASS_OPENChannel-Row_CLASS_CLOSED,<hi rend="SMALL-CAPS">NCE</hi> on a Time, near </l>
@@ -602,19 +613,17 @@ class Tokenizer:
 #                    parent_markup = re.sub('<hi rend="' + feature_token + '">', feature_token.upper() + u"_CLASS_OPEN", parent_markup)
 #                    parent_markup = re.sub('</hi>', u"_CLASS_CLOSED", parent_markup)
 
-        # print( node )
-        # print( etree.tostring(node) )
 
-        for feature in [{'xpath': '//tei:hi[@rend="italic"]', 'text_token': 'italic', 'tag': 'hiitalic'},
-                        {'xpath': '//tei:hi[@rend="display-initial"]', 'text_token': 'display-initial', 'tag': 'hidisplay-italic'},
-                        {'xpath': '//tei:hi[@rend="underline"]', 'text_token': 'underline', 'tag': 'hiunderline'},
+        for feature in [{'xpath': 'tei:hi[@rend="italic"]', 'text_token': 'italic', 'tag': 'hiitalic'},
+                        {'xpath': 'tei:hi[@rend="display-initial"]', 'text_token': 'display-initial', 'tag': 'hidisplay-italic'},
+                        {'xpath': 'tei:hi[@rend="underline"]', 'text_token': 'underline', 'tag': 'hiunderline'},
 
-                        # {'xpath': '//tei:hi[@rend="SMALL-CAPS"]', 'text_token': 'small-caps', 'tag': 'hismall-caps'},
-                        {'xpath': '//tei:hi[@rend="SMALL-CAPS"]', 'text_token': 'SMALL-CAPS', 'tag': 'hismall-caps'},
+                        # {'xpath': 'tei:hi[@rend="SMALL-CAPS"]', 'text_token': 'small-caps', 'tag': 'hismall-caps'},
+                        {'xpath': 'tei:hi[@rend="SMALL-CAPS"]', 'text_token': 'SMALL-CAPS', 'tag': 'hismall-caps'},
 
-                        {'xpath': '//tei:hi[@rend="sup"]', 'text_token': 'superscript', 'tag': 'hisuperscript'},
-                        {'xpath': '//tei:hi[@rend="black-letter"]', 'text_token': 'black-letter', 'tag': 'hiblack-letter'},
-                        {'xpath': '//tei:gap', 'text_token': 'gap', 'tag': 'gap'}]:
+                        {'xpath': 'tei:hi[@rend="sup"]', 'text_token': 'superscript', 'tag': 'hisuperscript'},
+                        {'xpath': 'tei:hi[@rend="black-letter"]', 'text_token': 'black-letter', 'tag': 'hiblack-letter'},
+                        {'xpath': 'tei:gap', 'text_token': 'gap', 'tag': 'gap'}]:
 
             feature_xpath = feature['xpath']
             feature_token = feature['text_token']
@@ -625,33 +634,26 @@ class Tokenizer:
 
             for feature_element in feature_elements:
 
-                # print(feature_element)
-                # print(node.xpath('.'))
+                # Resolving SPP-178
+                # Ensure that the children are parsed only once
+                # However, all feature elements must still be removed
 
                 # Ensure that all text trailing the feature_element element is preserved
                 parent = feature_element.getparent()
 
-#                print( etree.tostring(parent) )
-
                 parent_tail = parent.tail if parent.tail is not None else ''
 
-                parent_text = unicode(parent.text) + string.join(map( Tokenizer.parse_child, list(parent.iterchildren())), '') + parent_tail
+                # Currently leads to issues relating to the parsing of redundant, trailing tokens
+                # @todo Resolve SPP-178
+
+#                parent_text_head = unicode(parent.text) if parent.text is not None else ''
+#                parent_text = parent_text_head + string.join(map( Tokenizer.parse_child, list(parent.iterchildren())), '') + parent_tail
+#                parent.text = parent_text
+
                 feature_element.getparent().remove(feature_element)
 
-#                print('trace')
-#                print( parent_text )
-
-                parent.text = parent_text
-                
 
         token_tree_root = ElementToken(doc=node)
-
-        # Debug
-        # <l xmlns="http://www.tei-c.org/ns/1.0" rend="indent(1)" n="3">Once on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,</l>
-#        if node.get('n') == '3':
-
-#            print(etree.tostring(node))
-#            print( token_tree_root.text )
 
         # For the text of the node, use the PunktWordTokenizer to tokenize the text
         # Ensure that each tokenized n-gram is linked to the lxml token for the tree:
@@ -844,6 +846,7 @@ class Tokenizer:
                         if elem_node_u_incr in tree_v:
 
                             elem_node_v = tree_v[elem_node_u_incr]
+
                         elif stanza_index > 0 and elem_node_u_decr in tree_v:
 
                             elem_node_v = tree_v[elem_node_u_decr]
@@ -860,7 +863,6 @@ class Tokenizer:
 
                     elem_node_v = tree_v[elem_node_u]
                     
-
                 text_nodes_v = elem_node_v.keys()
                 
                 text_node_v = string.join(text_nodes_v)
