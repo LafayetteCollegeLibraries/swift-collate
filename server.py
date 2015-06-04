@@ -97,26 +97,28 @@ class CollateHandler(tornado.web.RequestHandler):
         self.render("collate.html", collation=collated_set.values())
 
     # For testing, remove for integration with Fedora Commons
-    def get(self):
+    def get(self, apparatus = 'R565', base = 'R56503P1'):
 
-        uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['tests/fixtures/test_swift_36629.xml',
-                                                                                                 'tests/fixtures/test_swift_36670.xml',
-                                                                                                 'tests/fixtures/test_swift_36711.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_36752.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_36793.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_40916.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_40267.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_39876.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_39573.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_39477.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_37660.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_37602.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_36992.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_36940.tei.xml',
-                                                                                                 'tests/fixtures/test_swift_36834.tei.xml',
-                                                                                                 ])
+        # @todo Refactor and abstract
+        #
+        R565_uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), ['tests/fixtures/test_swift_36629.xml',
+                                                                                                      'tests/fixtures/test_swift_36670.xml',
+                                                                                                      'tests/fixtures/test_swift_36711.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_36752.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_36793.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_40916.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_40267.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_39876.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_39573.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_39477.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_37660.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_37602.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_36992.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_36940.tei.xml',
+                                                                                                      'tests/fixtures/test_swift_36834.tei.xml',
+                                                                                                      ])
 
-        ids = [
+        R565_ids = [
             # "R56503P1",
                "R56503P2",
                "R56503P3",
@@ -133,6 +135,25 @@ class CollateHandler(tornado.web.RequestHandler):
                "R565760L",
                "R565ROGP"]
 
+        zero11_uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), path), [
+                'tests/fixtures/011/swift_35715.tei.xml',
+                'tests/fixtures/011/swift_38903.tei.xml',
+                'tests/fixtures/011/swift_40636.tei.xml',
+                ])
+
+        zero11_ids = [ 
+            # '011-002D',
+            '011-14W2',
+            '011-HW37'
+            ]
+
+        apparatus_file_paths = { 'R565': { 'uris': R565_uris, 'ids': R565_ids },
+                                 '011': { 'uris': zero11_uris, 'ids': zero11_ids },
+                                 }
+
+        uris = apparatus_file_paths[apparatus]['uris']
+        ids = apparatus_file_paths[apparatus]['ids']
+
         # Retrieve the stanzas
         texts = map(Tokenizer.parse_text, uris)
 
@@ -146,7 +167,7 @@ class CollateHandler(tornado.web.RequestHandler):
 
             witnesses.append( { 'node': node, 'id': _id } )
 
-        stemma = Tokenizer.stemma({ 'node': base_text, 'id': 'R56503P1' }, witnesses)
+        stemma = Tokenizer.stemma({ 'node': base_text, 'id': base }, witnesses)
 
         # print stemma
 
@@ -184,7 +205,7 @@ def main():
             (r"/", MainHandler),
 #            (r"/auth/login", AuthLoginHandler),
 #            (r"/auth/logout", AuthLogoutHandler),
-            (r"/collate", CollateHandler),
+            (r"/collate/(.+?)/(.+)", CollateHandler),
         ],
         cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
         login_url="/auth/login",

@@ -72,9 +72,9 @@ class TextToken:
                     output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim + '(.+?)\s?'), markup[0] + markup_content.lower().capitalize() + markup[1], output )
             else:
 
-                #output = re.sub(class_name.upper() + '_CLASS_CLOSED', markup[-1], output)
-                #output = re.sub(class_name.upper() + '_CLASS_OPEN', markup[0], output)
-                output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), markup[0] + '\\1' + markup[1], output )
+                output = re.sub(class_name.upper() + '_CLASS_CLOSED', markup[-1], output)
+                output = re.sub(class_name.upper() + '_CLASS_OPEN', markup[0], output)
+                # output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), markup[0] + '\\1' + markup[1], output )
 
         for element_name, markup in { 'gap': '<br />',
                                       'indent': '<span class="indent">&#x00009;</span>',
@@ -136,7 +136,9 @@ class Line:
                     output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim + '(.+?\s+?)'), markup[0] + markup_content.lower().capitalize() + markup[1], output )
             else:
 
-                output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), markup[0] + '\\1' + markup[1], output )
+                output = re.sub(class_name.upper() + '_CLASS_CLOSED', markup[-1], output)
+                output = re.sub(class_name.upper() + '_CLASS_OPEN', markup[0], output)
+                # output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), markup[0] + '\\1' + markup[1], output )
 
         for element_name, markup in { 'gap': '<br />',
                                       'indent': '<span class="indent">&#x00009;</span>'
@@ -514,7 +516,16 @@ class Tokenizer:
     @staticmethod
     def parse_child(child):
         
-        child_text = child.text if child.text is not None else ''
+        # Recurse for nested <hi> elements
+        descendents = list(child.iterchildren())
+
+        if len(descendents) == 0:
+
+            child_text = child.text if child.text is not None else ''
+        else:
+        
+            child_text = (child.text if child.text is not None else '') + string.join(map(Tokenizer.parse_child, descendents))
+
         child_tail = child.tail if child.tail is not None else ''
 
         output = child_text + child_tail
@@ -525,7 +536,14 @@ class Tokenizer:
 
         elif child.get('rend'):
 
-            output = child.get('rend').upper() + u"_CLASS_OPEN" + child_text + child.get('rend').upper() + u"_CLASS_CLOSED" + child_tail
+            rend_value = child.get('rend')
+            rend_value = re.sub(r'\s', '-', rend_value)
+            rend_value = rend_value.upper()
+
+            # Filtering against a list of known markup
+            if rend_value not in ['SMALL-TYPE-FLUSH-LEFT']:
+
+                output = rend_value + u"_CLASS_OPEN" + child_text + rend_value + u"_CLASS_CLOSED" + child_tail
 
         return output
 
@@ -617,6 +635,8 @@ class Tokenizer:
             # Remove the footnote itself
             footnote.getparent().remove(footnote)
 
+        #  for structural markup for 
+
         # Handling for typographic feature (e. g. <hi />) and editorial elements (e. g. <gap />)
         # Leave intact; Prefer transformation into HTML5 using XSL Stylesheets
 
@@ -640,7 +660,10 @@ class Tokenizer:
 
                         {'xpath': 'tei:hi[@rend="sup"]', 'text_token': 'superscript', 'tag': 'hisuperscript'},
                         {'xpath': 'tei:hi[@rend="black-letter"]', 'text_token': 'black-letter', 'tag': 'hiblack-letter'},
-                        {'xpath': 'tei:gap', 'text_token': 'gap', 'tag': 'gap'}]:
+                        {'xpath': 'tei:gap', 'text_token': 'gap', 'tag': 'gap'},
+                        
+                        {'xpath': 'tei:note[@rend="small type flush left"]', 'text_token': 'stanza', 'tag': 'stanza'}, # Handling for stanza heading indices
+                        ]:
 
             feature_xpath = feature['xpath']
             feature_token = feature['text_token']
