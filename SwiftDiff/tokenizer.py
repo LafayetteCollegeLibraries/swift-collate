@@ -28,13 +28,17 @@ class TextToken:
         classes = []
 
         for element_name, element_classes in { 'indent': ['indent'],
-                                               'display-initial': [ 'display-initial' ] }.iteritems():
+                                               'display-initial': [ 'display-initial' ],
+                                               'black-letter': [ 'black-letter' ],
+                                               }.iteritems():
 
             if re.match(element_name.upper() + '_ELEMENT', output) or re.match(element_name.upper() + '_CLASS_OPEN', output):
 
                 classes.extend(element_classes)
         return classes
 
+    # This provides the HTML markup for the intermediary strings used for tokenization
+    #
     @staticmethod
     def escape(ngram):
 
@@ -43,11 +47,15 @@ class TextToken:
         for class_name, markup in { 'italic': [ '<i>', '</i>' ],
                                     'display-initial': [ '<span>', '</span>' ],
                                     'underline': [ '<u>', '</u>' ],
+                                    'small-caps': [ '<small>', '</small>' ],
+                                    'black-letter': [ '<span>', '</span>' ],
                                     }.iteritems():
 
             class_closed_delim = class_name.upper() + '_CLASS_CLOSED'
             class_opened_delim = class_name.upper() + '_CLASS_OPEN'
 
+            # Anomalous handling for cases in which the display initials are capitalized unnecessarily
+            #
             if class_name == 'display-initial':
 
                 #output = re.sub(class_name.upper() + '_CLASS_CLOSED', markup[-1], output)
@@ -69,7 +77,7 @@ class TextToken:
                 output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), markup[0] + '\\1' + markup[1], output )
 
         for element_name, markup in { 'gap': '<br />',
-                                      'indent': '<span class="indent">&#x00009;</span>'
+                                      'indent': '<span class="indent">&#x00009;</span>',
                                       }.iteritems():
 
             output = re.sub(element_name.upper() + '_ELEMENT', markup, output)
@@ -78,6 +86,8 @@ class TextToken:
 
 class Line:
 
+    # @todo Refactor with TextToken.classes
+    #
     @staticmethod
     def classes(line):
 
@@ -86,6 +96,7 @@ class Line:
 
         for element_name, element_classes in { 'indent': ['indent'],
                                                # 'display-initial': [ 'display-initial' ]
+                                               'black-letter': [ 'black-letter' ]
                                                }.iteritems():
 
             if re.match(element_name.upper() + '_ELEMENT', output) or re.match(element_name.upper() + '_CLASS_OPEN', output):
@@ -93,14 +104,20 @@ class Line:
                 classes.extend(element_classes)
         return classes
 
+    # @todo Refactor with TextToken.escape
+    #
     @staticmethod
     def escape(line):
 
         output = line
 
         for class_name, markup in { 'italic': [ '<i>', '</i>' ],
+
                                     'display-initial': [ '<span class="display-initial">', '</span>' ],
                                     'underline': [ '<u>', '</u>' ],
+
+                                    'small-caps': [ '<small>', '</small>' ],
+                                    'black-letter': [ '<span>', '</span>' ],
                                     }.iteritems():
 
             class_closed_delim = class_name.upper() + '_CLASS_CLOSED'
@@ -194,7 +211,7 @@ class ElementToken:
                 feature_xml = feature['xml']
 
                 doc_markup = re.sub(feature_xml , string.upper(feature['text_token']) + u"_CLASS_OPEN", doc_markup)
-            doc_markup = re.sub('</hi>', u"_CLASS_CLOSED_1", doc_markup)
+            doc_markup = re.sub('</hi>', u"_CLASS_CLOSED", doc_markup)
 
             new_doc = etree.fromstring(doc_markup)
             text = string.join(list(new_doc.itertext())) if new_doc.text is not None else ''
