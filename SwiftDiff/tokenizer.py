@@ -917,13 +917,6 @@ class Tokenizer:
                 # Just add the edit distance
                 edit_dist = nodes_u_dist + nodes_v_dist + nltk.metrics.distance.edit_distance(text_node_u, text_node_v)
 
-                # Debugging
-                # if re.match(r"n=\"10\"", elem_node_u):
-                # if elem_node_u == '<lg n="1"/l n="3" />':
-#                print 'adding the edges'
-#                print elem_node_u
-#                print text_node_u
-                
                 # Note: This superimposes the TEI structure of the base text upon all witnesses classified as variants
                 # Add an edge between the base element and the base text
                 diff_tree.add_edge(elem_node_u, TextToken(text_node_u), distance=0, witness=text_u_id, feature='line')
@@ -941,8 +934,37 @@ class Tokenizer:
 
 #                text_tokens_v = text_tokenizer.tokenize(text_node_v)
 #                text_tokens_v = Tokenizer.clean_tokens(text_tokens_v)
-                text_tokens_u = text_node_u.split()
-                text_tokens_v = text_node_v.split()
+                raw_text_tokens_u = text_node_u.split()
+                raw_text_tokens_v = text_node_v.split()
+
+                # Clean the tokens for cases of imbalanced markup
+                # This handles cases in which opening and closing tags have separate tokens between the tags
+                #
+                text_token_index = 0
+                text_tokens = [ [],
+                                [] ]
+
+                for text_tokens_set in [raw_text_tokens_u, raw_text_tokens_v]:
+
+                    for raw_text_token in text_tokens_set:
+
+                        text_token = raw_text_token
+
+                        markup_init_match = re.findall(r'([A-Z]+?)_CLASS_CLOSED', raw_text_token)
+                        markup_term_match = re.findall(r'([A-Z]+?)_CLASS_OPEN', raw_text_token)
+
+                        if len(markup_init_match) > len(markup_term_match):
+
+                            text_token = markup_init_match[-1] + '_CLASS_OPEN' + text_token
+                        elif len(markup_init_match) < len(markup_term_match):
+
+                            text_token += markup_term_match[-1] + '_CLASS_CLOSED'
+
+                        text_tokens[text_token_index].append(text_token)
+
+                    text_token_index += 1
+
+                text_tokens_v, text_tokens_u = text_tokens.pop(), text_tokens.pop()
 
                 # Debugging
 
