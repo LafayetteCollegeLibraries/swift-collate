@@ -76,24 +76,48 @@ class CollateHandler(tornado.web.RequestHandler):
 
     def post(self):
 
-        witnesses = self.get_argument("witnesses")
+        # Work-around (given that Tornado does not parse the POST parameters)
+        params = tornado.escape.json_decode(self.request.body)
+
+        # witnesses = self.get_argument("witnesses")
+        witnesses = params['witnesses']
 
         uris = map(lambda witness: witness['uri'], witnesses)
-        ids = map(lambda witness: witness['id'], witnesses)
+        # ids = map(lambda witness: witness['id'], witnesses)
 
         # Retrieve the stanzas
-        tei_stanza_u, tei_stanza_v = map(Tokenizer.parse_stanza, uris)
-        id_u, id_v = ids
+        texts = filter(lambda stanza: stanza is not None, map(Tokenizer.parse_text, uris))
+        # texts = map(Tokenizer.parse_text, uris)
+
+        ids = []
+        for text in texts:
+
+            id_elems = text.xpath('//tei:div[@type="poem" or @type="book"]/@n', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+
+            if len(id_elems) > 0:
+                ids.append(id_elems[0])
+
+        # tei_stanza_u, tei_stanza_v = map(Tokenizer.parse_stanza, uris)
+        # id_u, id_v = ids
+
+        base_text = texts[0]
+        texts = texts[1:]
+
+        base_id = ids[0]
+        ids = ids[1:]
+
+        witnesses = []
+        for node, _id in zip(texts, ids):
+
+            witnesses.append( { 'node': node, 'id': _id } )
 
         # Tokenize the stanzas
         tokenizer= Tokenizer()
-
-        # diff_tree = Tokenizer.diff(tei_stanza_u, id_u, tei_stanza_v, id_v)
-        diff_tree = Tokenizer.diff(tei_stanza_u, id_u, tei_stanza_v, id_v)
+        stemma = Tokenizer.stemma({ 'node': base_text, 'id': base_id }, witnesses)
 
         # Generate the collation
-        collated_set = Collation(diff_tree)
-
+        collated_set = Collation(stemma)
+        
         self.render("collate.html", collation=collated_set.values())
 
     # For testing, remove for integration with Fedora Commons
@@ -169,25 +193,10 @@ class CollateHandler(tornado.web.RequestHandler):
 
         stemma = Tokenizer.stemma({ 'node': base_text, 'id': base }, witnesses)
 
-        # print stemma
-
         # Generate the collation
         collated_set = Collation(stemma)
         
-#        for row,values in collation['lines'].iteritems():
-
-#            if 'line' in values and 'ngram' in values:
-
-#                for i, token in enumerate(values['ngram'][values['ngram'].keys()[0]]):
-
-#                    print i
-
-#                for line_ngram_witness, line_ngrams in values['ngram'].iteritems():
-
-#                    print line_ngram_witness
-
         self.render("collate.html", collation=collated_set.values())
-        # return 'trace'
 
 class MainHandler(tornado.web.RequestHandler):
 
@@ -205,13 +214,15 @@ def main():
             (r"/", MainHandler),
 #            (r"/auth/login", AuthLoginHandler),
 #            (r"/auth/logout", AuthLogoutHandler),
-            (r"/collate/(.+?)/(.+)", CollateHandler),
+#            (r"/collate/(.+?)/(.+)", CollateHandler),
+            (r"/collate", CollateHandler),
         ],
         cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
         login_url="/auth/login",
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
         static_path=os.path.join(os.path.dirname(__file__), "static"),
-        xsrf_cookies=True,
+        static_url_prefix="static/",
+        xsrf_cookies=False, # @todo Enable
         debug=options.debug,
         ui_modules={ "Token": TokenModule, "Line": LineModule },
         )

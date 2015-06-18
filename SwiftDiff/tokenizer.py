@@ -8,6 +8,7 @@ import nltk
 import string
 from copy import deepcopy
 from lxml import etree
+import urllib
 
 from difflib import ndiff
 
@@ -469,24 +470,40 @@ class Tokenizer:
     @staticmethod
     def parse_stanza(resource):
 
-        with open(resource) as f:
+        response = urllib.urlopen(resource)
+        data = response.read()
 
-            data = f.read()
+        try:
+
             doc = etree.fromstring(data)
             elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
             elem = elems.pop()
+        except Exception as inst:
+
+            # doc = etree.fromstring('<?xml version="1.0" encoding="utf-8"?><TEI xmlns="http://www.tei-c.org/ns/1.0" xml:lang="en"><text><body><div type="book"><div n="006-35D-" type="poem"><lg n="1"></lg></div></div></body></text></TEI>')
+            # elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            # elem = elems.pop()
+            return None
 
         return elem
 
     @staticmethod
     def parse_text(resource):
 
-        with open(resource) as f:
+        response = urllib.urlopen(resource)
+        data = response.read()
 
-            data = f.read()
+        try:
+
             doc = etree.fromstring(data)
             elems = doc.xpath('//tei:text', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
             elem = elems.pop()
+        except Exception as inst:
+
+            # doc = etree.fromstring('<?xml version="1.0" encoding="utf-8"?><TEI xmlns="http://www.tei-c.org/ns/1.0" xml:lang="en"><text><body><div type="book"><div n="006-35D-" type="poem"><lg n="1"></lg></div></div></body></text></TEI>')
+            # elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            # elem = elems.pop()
+            return None
 
         return elem
 
