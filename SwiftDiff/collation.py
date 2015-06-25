@@ -142,15 +142,40 @@ class Collation:
                                 sorted_values[doc_feature][n][feature] = sorted(row, key=lambda e: e['distance'])
 
         # Temporarily resolves SPP-180
-        if 'lines' in sorted_values and -1 in sorted_values['lines']:
+        if 'lines' in sorted_values:
 
-            for line_number, values in sorted_values['lines'].iteritems():
+            sorted_values_lines = sorted_values['lines']
+            resorted_values_lines = {}
 
-                if line_number < 0:
+            for line_number, values in sorted_values_lines.iteritems():
 
-                    line_key = 'Footnote ' + str((line_number * -1))
-                    sorted_values['lines'][line_key] = sorted_values['lines'][line_number]
-                    del sorted_values['lines'][line_number]
+                    if line_number < 0:
+
+                        print( 'trace1' )
+                        print(line_number)
+
+                        # line_key = 'Footnote ' + str( int((1 + line_number) * -100) )
+                        line_key = 'Footnote ' + str(100 - int((line_number * 100) % 100)) + ' for stanza ' + str(int((line_number * -100) / 100))
+
+                        # sorted_values['lines'][line_key] = sorted_values['lines'][line_number]
+                        # del sorted_values['lines'][line_number]
+                        
+                    elif line_number < 1:
+
+                        print( 'trace2' )
+                        print(line_number)
+
+                        line_key = 'Headnote ' + str(int(line_number * 10.0))
+                        # sorted_values['lines'][line_key] = sorted_values['lines'][line_number]
+                        # del sorted_values['lines'][line_number]
+
+                    else:
+
+                        line_key = line_number
+
+                    resorted_values_lines[line_key] = sorted_values_lines[line_number]
+
+            sorted_values['lines'] = resorted_values_lines
 
         self._values = sorted_values
 
@@ -198,10 +223,10 @@ class Collation:
                     # line_n = int(n_match.group(2))
                     # n = int(n_match.group(2))
 
-                    n = int(n_match.group(1))
+                    line_index = int(n_match.group(1))
                 else:
                     
-                    n=i
+                    line_index = i
 
                 # Terrible work-around
                 # Resolves SPP-180
@@ -209,7 +234,29 @@ class Collation:
                 # @todo Refactor
                 if '-footnotes' in xml:
 
-                    n = 0 - n
+                    footnote_m = re.search('(\d+)\-footnotes', xml)
+                    n = 0 - int(footnote_m.group(1))
+
+                    n -= line_index * 0.01
+
+                elif '-headnotes' in xml:
+
+                    # Extending the handling (given that there are cases in which multiple stanzas contain lines with the same relative index)
+                    # <lg n="2-headnotes"/l n="1" />
+                    # <lg n="1-headnotes"/l n="1" />
+                    #
+                    headnote_m = re.search('(\d+)\-headnotes', xml)
+                    n = int(headnote_m.group(1)) * 0.1
+
+                    # Additional work-around
+                    # Resolves SPP-179
+                    #
+                    # @todo Refactor
+                    n += line_index * 0.01
+
+                else:
+
+                    n = line_index
 
                 feature = data['feature']
                 position = data['position'] if 'position' in data else None

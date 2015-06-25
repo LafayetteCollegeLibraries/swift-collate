@@ -504,6 +504,77 @@ class Tokenizer:
 
         return elem
 
+    # Parsing for headnotes within the tree for a given text node
+    # @todo Refactor as TextTree.headnotes.parse()
+    #
+    @staticmethod
+    def text_tree_headnotes_parse(text_node):
+
+        # @todo Refactor
+        #
+
+        # Append a stanza for headnotes
+        last_stanza_elems = text_node.xpath("//tei:lg[last()]", namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+
+        if len(last_stanza_elems) == 0:
+
+            raise Exception('No <tei:lg> elements could be found within this node')
+        last_stanza_elem = last_stanza_elems[-1]
+
+        # Initialize the elements for the headnotes
+        # (There shall obviously only be one stanza)
+        #
+        headnote_container_stanza_elem = etree.SubElement(last_stanza_elem.getparent(), "lg", {'n': '1-headnotes', 'type': 'stanza'}, {'tei': 'http://www.tei-c.org/ns/1.0'})
+        headnote_container_stanza_elems = [headnote_container_stanza_elem]
+
+        # Initialize the indices for the headnotes
+        headnote_container_stanza_index = 1
+        headnote_line_index = 1
+
+        # Iterate through all of the <head> elements as headnotes
+        for headnote in text_node.xpath("//tei:head/tei:lg/tei:l", namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}):
+
+            # Be certain to index each headnote by stanza
+            parent_stanza_indices = headnote.xpath('../../@n')
+
+            if len(parent_stanza_indices) == 0:
+
+                raise Exception("Could not retrieve the stanza index for a given headnote")
+
+            parent_stanza_index = parent_stanza_indices[-1]
+
+            # Retrieve the stanza identifier of the current stanza element
+            container_stanza_index = headnote_container_stanza_elem.get('n').split('-headnotes')[0]
+
+            # If the current stanza identifier refers to another stanza, create a new stanza
+            if parent_stanza_index != container_stanza_index:
+
+                headnote_container_stanza_index += 1
+                headnote_container_stanza_elem = etree.SubElement(last_stanza_elem.getparent(), "lg", {'n': str(headnote_container_stanza_index) + '-headnotes', 'type': 'stanza' }, {'tei': 'http://www.tei-c.org/ns/1.0'})
+                headnote_line_index = 1
+                headnote_container_stanza_elems.append(headnote_container_stanza_elem)
+
+            # Create the <l> element serving as a container for the <head> element
+            headnote_line = etree.SubElement(headnote_container_stanza_elem, "l", {'n': str(headnote_line_index)}, {'tei': 'http://www.tei-c.org/ns/1.0'})
+            headnote_line.text = ''.join(headnote.itertext())
+            
+            # Ensure that all text trailing the headnote element is preserved
+            parent = headnote.getparent()
+
+            parent_text = '' if parent.text is None else parent.text
+            headnote_tail = '' if headnote.tail is None else headnote.tail
+            parent.text = parent_text + headnote_tail
+
+            # Headnotes are not to be removed, but instead, are to be appended following each line
+            # node.append( deepcopy(headnote) )
+
+            # Remove the headnote itself
+            headnote.getparent().remove(headnote)
+
+            headnote_line_index += 1
+        
+        return headnote_container_stanza_elems        
+
     # Parsing for footnotes within the tree for a given text node
     # @todo Refactor as TextTree.footnotes.parse()
     #
@@ -514,7 +585,7 @@ class Tokenizer:
         # Resolves SPP-180
         #
 
-        # Append a terminal stanza for footnotes
+        # Append a stanza for footnotes
         last_stanza_elems = text_node.xpath("//tei:lg[last()]", namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
 
         if len(last_stanza_elems) == 0:
@@ -598,9 +669,17 @@ class Tokenizer:
         # * headnotes
         # * titles
 
+        # Firstly, extract the headnotes
+        headnotes_lg_nodes = Tokenizer.text_tree_headnotes_parse(text_node)
+
+        lg_nodes = headnotes_lg_nodes
+
         # Restructure the text_node in order to handle footnotes
         footnotes_lg_nodes = Tokenizer.text_tree_footnotes_parse(text_node)
-        lg_nodes = text_node.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+
+        print( map(lambda lg_node: etree.tostring(lg_node), footnotes_lg_nodes) )
+
+        lg_nodes.extend( text_node.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}) )
         lg_nodes.extend(footnotes_lg_nodes)
 
         if not lg_nodes:

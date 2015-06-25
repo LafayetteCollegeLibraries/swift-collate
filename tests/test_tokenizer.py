@@ -296,6 +296,29 @@ class TestTokenizer:
         # "amet" is ommitted due to the alignment process
         # assert 'amet' in text_node_values
 
+    def test_stemma_headnotes(self, tei_doc_g, tei_doc_b, tei_doc_c):
+
+        base_text = { 'node': tei_doc_c, 'id': 'base' }
+        witnesses = [ { 'node': tei_doc_g, 'id': "a" }, { 'node': tei_doc_b, 'id': "b" } ]
+        stemma = Tokenizer.stemma(base_text, witnesses)
+
+        assert '<lg n="1-headnotes"/l n="1" />' in stemma
+
+        text_nodes = stemma['<lg n="1-headnotes"/l n="1" />'].keys()
+        text_node_values = map(lambda text_node: text_node.value, text_nodes)
+
+        assert 'Songs of Innocence' in text_node_values
+        assert 'Songs' in text_node_values
+        assert 'of' in text_node_values
+        assert 'Innocence' in text_node_values
+
+#        assert 'Songs of Guilt' in text_node_values
+#        assert 'Guilt' in text_node_values
+
+        assert 'My Innocent Songs' in text_node_values
+        assert 'My' in text_node_values
+        assert 'Innocent' in text_node_values
+
     def test_stemma_alignment(self, tei_doc_d, tei_doc_e, tei_doc_f):
 
         base_text = { 'node': tei_doc_d, 'id': 'd' }

@@ -11,7 +11,7 @@
 
 	  {% if 'line' in values %}
 
-	  {% if isinstance(row, str) and 'Footnote' in row %}
+	  {% if isinstance(row, str) and ('Footnote' in row or 'Headnote' in row ) %}
 
 	  <h2>{{ row.replace('Line ', '') }}</h2>
 	  {% else %}
