@@ -103,6 +103,18 @@ class TestTokenizer:
         return elem
 
     @pytest.fixture
+    def tei_doc_g(self):
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/test_tei_g.xml')) as f:
+
+            data = f.read()
+            doc = etree.fromstring(data)
+            elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            elem = elems.pop()
+
+        return elem
+
+    @pytest.fixture
     def tei_doc_R56503P1(self):
 
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/test_swift_36629.xml')) as f:
@@ -262,7 +274,27 @@ class TestTokenizer:
 
         # assert str(stanza_2_u) == 'INDENT_ELEMENTOnce on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
 
-        
+    def test_stemma_footnotes(self, tei_doc_g, tei_doc_b, tei_doc_c):
+
+        base_text = { 'node': tei_doc_c, 'id': 'base' }
+        witnesses = [ { 'node': tei_doc_g, 'id': "a" }, { 'node': tei_doc_b, 'id': "b" } ]
+        stemma = Tokenizer.stemma(base_text, witnesses)
+
+        assert '<lg n="1-footnotes"/l n="1" />' in stemma
+
+        text_nodes = stemma['<lg n="1-footnotes"/l n="1" />'].keys()
+        text_node_values = map(lambda text_node: text_node.value, text_nodes)
+
+        assert 'Lorem ipsum' in text_node_values
+        assert 'Lorem' in text_node_values
+        assert 'ipsum' in text_node_values
+
+        assert 'dolor sit amet' in text_node_values
+        assert 'dolor' in text_node_values
+        assert 'sit' in text_node_values
+
+        # "amet" is ommitted due to the alignment process
+        # assert 'amet' in text_node_values
 
     def test_stemma_alignment(self, tei_doc_d, tei_doc_e, tei_doc_f):
 

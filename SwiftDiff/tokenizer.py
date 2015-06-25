@@ -498,14 +498,93 @@ class Tokenizer:
             doc = etree.fromstring(data)
             elems = doc.xpath('//tei:text', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
             elem = elems.pop()
-        except Exception as inst:
+        except Exception as ex:
 
-            # doc = etree.fromstring('<?xml version="1.0" encoding="utf-8"?><TEI xmlns="http://www.tei-c.org/ns/1.0" xml:lang="en"><text><body><div type="book"><div n="006-35D-" type="poem"><lg n="1"></lg></div></div></body></text></TEI>')
-            # elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
-            # elem = elems.pop()
             return None
 
         return elem
+
+    # Parsing for footnotes within the tree for a given text node
+    # @todo Refactor as TextTree.footnotes.parse()
+    #
+    @staticmethod
+    def text_tree_footnotes_parse(text_node):
+
+        # Structure a "footnote" stanza specifically for the parsing of footnotes
+        # Resolves SPP-180
+        #
+
+        # Append a terminal stanza for footnotes
+        last_stanza_elems = text_node.xpath("//tei:lg[last()]", namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+
+        if len(last_stanza_elems) == 0:
+
+            raise Exception('No <tei:lg> elements could be found within this node')
+        last_stanza_elem = last_stanza_elems[-1]
+
+        footnote_container_stanza_elem = etree.SubElement(last_stanza_elem.getparent(), "lg", {'n': '1-footnotes', 'type': 'stanza'}, {'tei': 'http://www.tei-c.org/ns/1.0'})
+        footnote_container_stanza_elems = [footnote_container_stanza_elem]
+
+#        footnote_container_stanza_elem = etree.Element("lg", {'n': '1-footnotes'}, {'tei': 'http://www.tei-c.org/ns/1.0'})
+#        last_stanza_elems[0]
+
+        # footnote_container_stanza_elem['n'] = '1-footnotes'
+        footnote_container_stanza_index = 1
+        footnote_line_index = 1
+
+        for footnote in text_node.xpath("//tei:note[@place='foot']", namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}):
+
+            # Be certain to index each footnote by stanza
+            parent_stanza_indices = footnote.xpath('../../@n')
+
+            if len(parent_stanza_indices) == 0:
+
+                raise Exception("Could not retrieve the stanza index for a given footnote")
+
+            parent_stanza_index = parent_stanza_indices[-1]
+
+            # Retrieve the stanza identifier of the current stanza element
+            container_stanza_index = footnote_container_stanza_elem.get('n').split('-footnotes')[0]
+
+            # Generate the stanza identifier of the current footnote
+            # stanza = parent_stanza_elems[0] + '-footnotes'
+
+            # If the current stanza identifier refers to another stanza, create a new stanza
+            if parent_stanza_index != container_stanza_index:
+
+                footnote_container_stanza_index += 1
+                footnote_container_stanza_elem = etree.SubElement(last_stanza_elem.getparent(), "lg", {'n': str(footnote_container_stanza_index) + '-footnotes', 'type': 'stanza' }, {'tei': 'http://www.tei-c.org/ns/1.0'})
+                footnote_line_index = 1
+                footnote_container_stanza_elems.append(footnote_container_stanza_elem)
+
+            # Create the <l> element serving as a container for the <note> element
+            footnote_line = etree.SubElement(footnote_container_stanza_elem, "l", {'n': str(footnote_line_index)}, {'tei': 'http://www.tei-c.org/ns/1.0'})
+            # footnote_line.append(deepcopy(footnote))
+            # footnote_line.extend(list(footnote))
+            footnote_line.text = ''.join(footnote.itertext())
+            # footnote_line['n'] = footnote_line_index
+
+            # Append the footnote to the stanza element
+            # footnotes.append(deepcopy(footnote))
+            # footnote_container_stanza_elem.append(deepcopy(footnote_line))
+
+            # Ensure that all text trailing the footnote element is preserved
+            parent = footnote.getparent()
+
+            parent_text = '' if parent.text is None else parent.text
+            footnote_tail = '' if footnote.tail is None else footnote.tail
+            parent.text = parent_text + footnote_tail
+
+            # Footnotes are not to be removed, but instead, are to be appended following each line
+            # node.append( deepcopy(footnote) )
+
+            # Remove the footnote itself
+            footnote.getparent().remove(footnote)
+
+            footnote_line_index += 1
+    
+        # return text_node
+        return footnote_container_stanza_elems
 
     # Construct the Document tree for tei:text elements
     # The output is passed to either Tokenizer.diff() or Tokenizer.stemma()
@@ -514,7 +593,15 @@ class Tokenizer:
     @staticmethod
     def text_tree(text_node, name=''):
 
+        # Handling for the following must be undertaken here:
+        # * footnotes
+        # * headnotes
+        # * titles
+
+        # Restructure the text_node in order to handle footnotes
+        footnotes_lg_nodes = Tokenizer.text_tree_footnotes_parse(text_node)
         lg_nodes = text_node.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+        lg_nodes.extend(footnotes_lg_nodes)
 
         if not lg_nodes:
 
@@ -634,7 +721,23 @@ class Tokenizer:
 
         footnotes = footnote_tree.xpath('//tei:l[@n="1"]', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}).pop()
 
+        
+        # Structure a "footnote" stanza specifically for the parsing of footnotes
+        # Resolves SPP-180
+        #
         for footnote in node.xpath("//tei:note[@place='foot']", namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}):
+
+            # Be certain to index each footnote by stanza
+            footnote_container_stanza_elems = footnote.xpath('../../@n')
+
+            # When the tei:lg@n value is not specified, assume this to lie within the first stanza
+            footnote_stanza = '1-footnotes'
+            if len(footnote_container_stanza_elems) > 0:
+
+                footnote_stanza = footnote_container_stanza_elems[0] + '-footnotes'
+
+            # Find or add a stanza for the footnotes
+            
             
             # Append the footnote to the tree
             # footnotes.append(deepcopy(footnote))
@@ -841,9 +944,6 @@ class Tokenizer:
     @staticmethod
     def diff(node_u, text_u_id, node_v, text_v_id):
 
-#        print 'trace3'
-#        print node_u
-        
         # Each node serves as a <tei:text> element for the text being compared
         tree_u = Tokenizer.text_tree(node_u, text_u_id)
         text_u_id = tree_u.name if text_u_id is None else text_u_id
@@ -890,7 +990,7 @@ class Tokenizer:
                 if not elem_node_u in tree_v:
 
                     # Try to structurally align the lines by one stanza
-                    stanza_node_u_m = re.search('<lg n="(\d+)"/l n="(\d+)"', elem_node_u)
+                    stanza_node_u_m = re.search('<lg n="(\d+)(?:\-footnotes)"/l n="(\d+)"', elem_node_u)
                     if stanza_node_u_m:
 
                         stanza_index = int(stanza_node_u_m.group(1))
