@@ -10,7 +10,14 @@
 	  {% for row,values in collation['lines'].iteritems() %}
 
 	  {% if 'line' in values %}
+
+	  {% if isinstance(row, str) and 'Footnote' in row %}
+
+	  <h2>{{ row.replace('Line ', '') }}</h2>
+	  {% else %}
+
 	  <h2>Line {{ row }}</h2>
+	  {% end %}
 
 	  {% if 'ngram' in values %}
 	  <h3>Line Tokens</h3>

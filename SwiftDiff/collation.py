@@ -141,6 +141,17 @@ class Collation:
 
                                 sorted_values[doc_feature][n][feature] = sorted(row, key=lambda e: e['distance'])
 
+        # Temporarily resolves SPP-180
+        if 'lines' in sorted_values and -1 in sorted_values['lines']:
+
+            for line_number, values in sorted_values['lines'].iteritems():
+
+                if line_number < 0:
+
+                    line_key = 'Footnote ' + str((line_number * -1))
+                    sorted_values['lines'][line_key] = sorted_values['lines'][line_number]
+                    del sorted_values['lines'][line_number]
+
         self._values = sorted_values
 
     # Iterate through each edge of the directed graph, and generate the values for the text tokens
@@ -171,6 +182,7 @@ class Collation:
             # if re.match(r'^[lp]\s', xml):
             # if re.match(r'^<[lp]\s', xml):
             n_match = re.match(r'.+?[lp]\sn="(\d+)"', xml)
+
             if n_match:
 
                 # self._values.append([])
@@ -190,6 +202,14 @@ class Collation:
                 else:
                     
                     n=i
+
+                # Terrible work-around
+                # Resolves SPP-180
+                #
+                # @todo Refactor
+                if '-footnotes' in xml:
+
+                    n = 0 - n
 
                 feature = data['feature']
                 position = data['position'] if 'position' in data else None

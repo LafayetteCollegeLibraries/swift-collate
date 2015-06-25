@@ -221,7 +221,7 @@ def main():
         login_url="/auth/login",
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
         static_path=os.path.join(os.path.dirname(__file__), "static"),
-        static_url_prefix="static/",
+#        static_url_prefix="static/",
         xsrf_cookies=False, # @todo Enable
         debug=options.debug,
         ui_modules={ "Token": TokenModule, "Line": LineModule },
