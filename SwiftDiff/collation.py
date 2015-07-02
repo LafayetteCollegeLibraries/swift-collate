@@ -151,19 +151,20 @@ class Collation:
 
                     if line_number < 0:
 
-                        print( 'trace1' )
-                        print(line_number)
-
                         # line_key = 'Footnote ' + str( int((1 + line_number) * -100) )
                         line_key = 'Footnote ' + str(100 - int((line_number * 100) % 100)) + ' for stanza ' + str(int((line_number * -100) / 100))
 
                         # sorted_values['lines'][line_key] = sorted_values['lines'][line_number]
                         # del sorted_values['lines'][line_number]
                         
-                    elif line_number < 1:
+                    elif line_number < 0.1:
 
-                        print( 'trace2' )
-                        print(line_number)
+                        line_key = 'Title ' + str(int(line_number * 100.0))
+
+                        # sorted_values['lines'][line_key] = sorted_values['lines'][line_number]
+                        # del sorted_values['lines'][line_number]
+
+                    elif line_number < 1:
 
                         line_key = 'Headnote ' + str(int(line_number * 10.0))
                         # sorted_values['lines'][line_key] = sorted_values['lines'][line_number]
@@ -229,11 +230,21 @@ class Collation:
                     line_index = i
 
                 # Terrible work-around
-                # Resolves SPP-180
+                # Resolves SPP-183
                 #
                 # @todo Refactor
-                if '-footnotes' in xml:
+                if '-titles' in xml:
 
+                    title_m = re.search('(\d+)\-titles', xml)
+                    # n = int(title_m.group(1)) * 0.01
+                    # n += line_index * 0.001
+                    n = int(title_m.group(1)) * 0.01
+
+                elif '-footnotes' in xml:
+
+                    # Resolves SPP-180
+                    #
+                    # @todo Refactor
                     footnote_m = re.search('(\d+)\-footnotes', xml)
                     n = 0 - int(footnote_m.group(1))
 

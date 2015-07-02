@@ -498,11 +498,66 @@ class Tokenizer:
             doc = etree.fromstring(data)
             elems = doc.xpath('//tei:text', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
             elem = elems.pop()
+
+            # Append the <title> elements for the purposes of analysis
+            title_elems = doc.xpath('//tei:title', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            elem.extend(title_elems)
+
         except Exception as ex:
 
             return None
 
         return elem
+
+    # Parsing for titles within the tree for a given text node
+    # @todo Refactor as TextTree.titles.parse()
+    #
+    @staticmethod
+    def text_tree_titles_parse(text_node):
+
+        # @todo Refactor
+        #
+
+        # Append a stanza for titles
+        last_stanza_elems = text_node.xpath("//tei:lg[last()]", namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+
+        if len(last_stanza_elems) == 0:
+
+            raise Exception('No <tei:lg> elements could be found within this node')
+        last_stanza_elem = last_stanza_elems[-1]
+
+        # Initialize the elements for the titles
+        #
+        title_container_stanza_elem = etree.SubElement(last_stanza_elem.getparent(), "lg", {'n': '1-titles', 'type': 'stanza'}, {'tei': 'http://www.tei-c.org/ns/1.0'})
+        title_container_stanza_elems = [title_container_stanza_elem]
+
+        # Initialize the indices for the titles
+        title_container_stanza_index = 1
+        title_line_index = 1
+
+        # Iterate through all of the <head> elements as titles
+        for title in text_node.xpath("//tei:title", namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}):
+
+            # Create the <l> element serving as a container for the <head> element
+            title_line = etree.SubElement(title_container_stanza_elem, "l", {'n': str(title_line_index)}, {'tei': 'http://www.tei-c.org/ns/1.0'})
+            title_line.text = ''.join(title.itertext())
+            
+            # Ensure that all text trailing the title element is preserved
+            parent = title.getparent()
+
+            parent_text = '' if parent.text is None else parent.text
+            title_tail = '' if title.tail is None else title.tail
+            parent.text = parent_text + title_tail
+
+            # Titles are not to be removed, but instead, are to be appended following each line
+            # node.append( deepcopy(title) )
+
+            # Remove the title itself
+            # title.getparent().remove(title)
+
+            title_line_index += 1
+
+        return title_container_stanza_elems
 
     # Parsing for headnotes within the tree for a given text node
     # @todo Refactor as TextTree.headnotes.parse()
@@ -522,7 +577,6 @@ class Tokenizer:
         last_stanza_elem = last_stanza_elems[-1]
 
         # Initialize the elements for the headnotes
-        # (There shall obviously only be one stanza)
         #
         headnote_container_stanza_elem = etree.SubElement(last_stanza_elem.getparent(), "lg", {'n': '1-headnotes', 'type': 'stanza'}, {'tei': 'http://www.tei-c.org/ns/1.0'})
         headnote_container_stanza_elems = [headnote_container_stanza_elem]
@@ -569,7 +623,7 @@ class Tokenizer:
             # node.append( deepcopy(headnote) )
 
             # Remove the headnote itself
-            headnote.getparent().remove(headnote)
+            # headnote.getparent().remove(headnote)
 
             headnote_line_index += 1
         
@@ -650,7 +704,7 @@ class Tokenizer:
             # node.append( deepcopy(footnote) )
 
             # Remove the footnote itself
-            footnote.getparent().remove(footnote)
+            # footnote.getparent().remove(footnote)
 
             footnote_line_index += 1
     
@@ -669,15 +723,18 @@ class Tokenizer:
         # * headnotes
         # * titles
 
-        # Firstly, extract the headnotes
+        # Initially extract the titles
+        titles_lg_nodes = Tokenizer.text_tree_titles_parse(text_node)
+        lg_nodes = titles_lg_nodes
+
+        # Next, extract the headnotes
         headnotes_lg_nodes = Tokenizer.text_tree_headnotes_parse(text_node)
 
-        lg_nodes = headnotes_lg_nodes
+        # lg_nodes = headnotes_lg_nodes
+        lg_nodes.extend(headnotes_lg_nodes)
 
         # Restructure the text_node in order to handle footnotes
         footnotes_lg_nodes = Tokenizer.text_tree_footnotes_parse(text_node)
-
-        print( map(lambda lg_node: etree.tostring(lg_node), footnotes_lg_nodes) )
 
         lg_nodes.extend( text_node.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}) )
         lg_nodes.extend(footnotes_lg_nodes)
@@ -891,7 +948,6 @@ class Tokenizer:
 
                 feature_element.getparent().remove(feature_element)
 
-
         token_tree_root = ElementToken(doc=node)
 
         # For the text of the node, use the PunktWordTokenizer to tokenize the text
@@ -1022,6 +1078,8 @@ class Tokenizer:
     # Generates a tree structuring the differences identified within two given TEI Documents
     @staticmethod
     def diff(node_u, text_u_id, node_v, text_v_id):
+
+        print "Comparing {0} to {1}".format(text_u_id, text_v_id)
 
         # Each node serves as a <tei:text> element for the text being compared
         tree_u = Tokenizer.text_tree(node_u, text_u_id)

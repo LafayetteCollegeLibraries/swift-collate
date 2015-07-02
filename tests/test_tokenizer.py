@@ -54,6 +54,10 @@ class TestTokenizer:
             elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
             elem = elems.pop()
 
+            # Append the <title> elements for the purposes of analysis
+            title_elems = doc.xpath('//tei:title', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            elem.extend(title_elems)
+
         return elem
 
     @pytest.fixture
@@ -65,6 +69,10 @@ class TestTokenizer:
             doc = etree.fromstring(data)
             elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
             elem = elems.pop()
+
+            # Append the <title> elements for the purposes of analysis
+            title_elems = doc.xpath('//tei:title', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            elem.extend(title_elems)
 
         return elem
 
@@ -111,6 +119,10 @@ class TestTokenizer:
             doc = etree.fromstring(data)
             elems = doc.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
             elem = elems.pop()
+
+            # Append the <title> elements for the purposes of analysis
+            title_elems = doc.xpath('//tei:title', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            elem.extend(title_elems)
 
         return elem
 
@@ -176,7 +188,6 @@ class TestTokenizer:
         # assert line_text == 'INDENT_ELEMENTOSMALL-CAPS_CLASS_OPENNCESMALL-CAPS_CLASS_CLOSED on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
 
     # Case 2
-
     def test_parse(self, tei_doc, tei_doc_R56503P2, tei_doc_R56503P3):
 
         tree = Tokenizer.parse(tei_doc)
@@ -318,6 +329,59 @@ class TestTokenizer:
         assert 'My Innocent Songs' in text_node_values
         assert 'My' in text_node_values
         assert 'Innocent' in text_node_values
+
+    def test_stemma_titles(self, tei_doc_g, tei_doc_b, tei_doc_c):
+
+        base_text = { 'node': tei_doc_c, 'id': 'base' }
+        witnesses = [ { 'node': tei_doc_g, 'id': "a" }, { 'node': tei_doc_b, 'id': "b" } ]
+        stemma = Tokenizer.stemma(base_text, witnesses)
+
+        assert '<lg n="1-titles"/l n="1" />' in stemma
+
+    def test_stanza_diff_titles(self, tei_doc_g, tei_doc_b, tei_doc_c,
+                                tei_doc_R56503P1, tei_doc_R56503P2, tei_doc_R56503P3):
+
+        tokenizer = Tokenizer()
+
+#        diff_tree = Tokenizer.diff(tei_doc_g, 'g', tei_doc_b, 'b')
+        diff_tree = Tokenizer.diff(tei_doc_R56503P1, 'R56503P1', tei_doc_R56503P2, 'R56503P2')
+#        diff_tree = Tokenizer.diff(tei_doc_R56503P2, 'R56503P2', tei_doc_R56503P3, 'R56503P3')
+
+        assert '<lg n="1-titles"/l n="1" />' in diff_tree
+
+#        text_node = filter( lambda text_node: text_node.value == '', diff_tree.edges() )
+
+#        print( text_node[0] )
+#        print( map(lambda text_node: text_node.value, diff_tree['<lg n="1-titles"/l n="1" />'].keys()) )
+
+        for text_node, values in diff_tree['<lg n="1-titles"/l n="1" />'].items():
+
+            print(text_node.value)
+            print(values)
+
+        pass
+
+    def test_stanza_stemma_titles(self, tei_doc_g, tei_doc_b, tei_doc_c,
+                                  tei_doc_R56503P1, tei_doc_R56503P2, tei_doc_R56503P3):
+
+        tokenizer = Tokenizer()
+
+        diff_tree = Tokenizer.stemma( {'node': tei_doc_R56503P1, 'id': 'R56503P1'},
+                                      [ {'node': tei_doc_R56503P2, 'id': 'R56503P2'},
+                                        {'node': tei_doc_R56503P3, 'id': 'R56503P3'} ])
+
+        assert '<lg n="1-titles"/l n="1" />' in diff_tree
+
+        for text_node, values in diff_tree['<lg n="1-titles"/l n="1" />'].items():
+
+            print(text_node.value)
+            print(values)
+
+        assert False
+
+        
+        pass
+
 
     def test_stemma_alignment(self, tei_doc_d, tei_doc_e, tei_doc_f):
 
