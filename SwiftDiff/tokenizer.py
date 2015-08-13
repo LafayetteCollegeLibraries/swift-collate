@@ -85,7 +85,7 @@ class TextToken:
 
         return output
 
-class Line:
+class OldLine:
 
     # @todo Refactor with TextToken.classes
     #
@@ -135,6 +135,11 @@ class Line:
                     markup_content = markup_match.group(1) + markup_match.group(2)
 
                     output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim + '(.+?\s+?)'), markup[0] + markup_content.lower().capitalize() + markup[1], output )
+                else:
+
+                    # @todo Identify why the display-initial markup regexp fails
+                    output = re.sub(class_name.upper() + '_CLASS_CLOSED', markup[-1], output)
+                    output = re.sub(class_name.upper() + '_CLASS_OPEN', markup[0], output)
             else:
 
                 output = re.sub(class_name.upper() + '_CLASS_CLOSED', markup[-1], output)
@@ -163,11 +168,13 @@ class ElementToken:
             # Work-around
             parents = doc.xpath('..')
             parent = parents.pop()
+            
+            if parent.get('n') is None:
 
-            # parent_name = parent.xpath('local-name()')
-            parent_name = parent.xpath('local-name()') + ' n="' + parent.get('n') + '"' if name == 'l' else parent.xpath('local-name()')
+                parent_name = parent.xpath('local-name()') if name == 'l' else parent.xpath('local-name()')
+            else:
+                parent_name = parent.xpath('local-name()') + ' n="' + parent.get('n') + '"' if name == 'l' else parent.xpath('local-name()')
 
-            # print etree.tostring(doc)
 
         self.name = name
         self.attrib = attrib
@@ -177,22 +184,29 @@ class ElementToken:
 
         # Work-around for the generation of normalized keys (used during the collation process)
         # @todo Refactor
+
+        # Line elements must be uniquely identified using @n values
+        # Resolves SPP-229
         if self.name == 'lg':
 
-            self.value = '<' + parent_name + '/' + self.name
+            # self.value = '<' + parent_name + '/' + self.name
+            self.value = '<' + self.name
             attribs = [(k,v) for (k,v) in attrib.iteritems() if k == 'n']
+        elif self.name == 'l' or self.name == 'p':
 
-            pass
-        elif self.name == 'l':
+            if 'n' in attrib and re.match('footnotes', attrib['n']):
 
-            self.value = '<' + parent_name + '/' + self.name
-            # self.value = '<' + self.name
+                self.value = '<' + parent_name + '/' + self.name
+            else:
+
+                self.value = '<' + self.name
+                
             attribs = [(k,v) for (k,v) in attrib.iteritems() if k == 'n']
-
         else:
 
             self.value = '<' + self.name
-            attribs = self.attrib.iteritems()
+            # attribs = self.attrib.iteritems()
+            attribs = [(k,v) for (k,v) in attrib.iteritems() if k == 'n']
 
         # Generate the key for the TEI element
         for attrib_name, attrib_value in attribs:
@@ -227,7 +241,6 @@ class ElementToken:
             if indent_match:
 
                 indent_value = int(indent_match.group(1))
-                # indent_tokens = [u"«indent»"] * indent_value
                 indent_tokens = [u"INDENT_ELEMENT"] * indent_value
                 indent = ''.join(indent_tokens)
 
@@ -460,6 +473,269 @@ class Alignment:
 
         pass
 
+class TextEntity(object):
+
+    def __init__(self):
+
+        self.lines = []
+
+class Headnotes(TextEntity):
+
+    pass
+
+class Body(TextEntity):
+
+    pass
+
+class Footnotes(TextEntity):
+
+    pass
+
+class Token(object):
+
+    def __init__(self, value, index):
+
+        self.value = value
+        self.index = index
+
+class DifferenceToken(Token):
+
+    def __init__(self, base_token, other_token):
+
+        self.distance = self.find_distance(base_token, other_token)
+
+        super(DifferenceToken, self).__init__(base_token.value, base_token.index)
+
+    def find_distance(self, base_token, other_token):
+
+        distance = nltk.metrics.distance.edit_distance(base_token.value, other_token.value)
+
+        return distance
+
+class Line(object):
+
+    def __init__(self, value, index):
+
+        self.value = value
+        self.index = index
+        self.tokens = []
+        self.tokenizer = PunktWordTokenizer()
+
+    def tokenize(self):
+
+        token_values = self.tokenizer.tokenize(self.value)
+
+        for token_index, token_value in enumerate(token_values):
+
+            self.tokens.append(Token(token_value, token_index))
+
+class DifferenceLine(Line):
+
+    def __init__(self, base_line, other_line):
+
+        self.other_line = other_line
+        self.distance = self.find_distance(base_line, other_line)
+
+        super(DifferenceLine, self).__init__(base_line.value, base_line.index)
+
+    def find_distance(self, base_line, other_line):
+
+        distance = nltk.metrics.distance.edit_distance(base_line.value, other_line.value)
+
+        return distance
+
+    def tokenize(self):
+
+        super(DifferenceLine, self).tokenize()
+        self.other_line.tokenize()
+
+        diff_tokens = []
+
+        for base_token, other_token in zip(self.tokens, self.other_line.tokens):
+
+            diff_tokens.append(DifferenceToken(base_token, other_token))
+
+        self.tokens = diff_tokens
+
+class DifferenceSet(object):
+
+    def __init__(self):
+
+        self.lines = {}
+
+    def lines(self, line_id):
+
+        if not line_id in self.lines:
+
+            self.lines[line_id] = DifferenceLine()
+
+        return self.lines[line_id]
+
+class DifferenceText(object):
+
+    def __init__(self, base_text, other_text):
+
+        self.other_text = other_text
+
+        self.headnotes = DifferenceSet()
+        self.body = DifferenceSet()
+        self.footnotes = DifferenceSet()
+
+        # for line_id, line in base_text.body.lines.iteritems():
+        for line_id, line in enumerate(base_text.body.lines):
+
+            # Retrieve the line from the other text
+            this_line = base_text.body.lines[line_id]
+
+            # Work-arounds for the sorting of lines by index
+            if line_id == 0: continue
+
+            try:
+
+                other_line = other_text.body.lines[line_id]
+
+                diff_line = DifferenceLine(this_line, other_line)
+                
+                diff_line.tokenize()
+
+                self.body.lines[line_id] = diff_line
+            except:
+
+                pass
+
+class Text(object):
+
+    def __init__(self, doc, doc_id):
+
+        self.headnotes = Headnotes()
+        self.body = Body()
+        self.footnotes = Footnotes()
+
+        self.doc = doc
+
+        self.id = doc_id
+
+        self.tokenize()
+
+    def parse_element(self, element):
+
+        result = ''
+        element_text = '' if element.text is None else element.text
+        element_tail = '' if element.tail is None else element.tail
+
+        # Specialized handling for <hi> nodes
+        # Capitalized style values are used as keywords
+        # @todo Refactor for an encoded approach
+        if element.xpath('local-name()') == 'hi':
+
+            element_text += ' ' + element.get('rend').upper()
+            element_tail = element_tail + ' ' + element.get('rend').upper()
+
+        children_text = ''
+
+        if len(element):
+
+            for child_element in list(element):
+
+                children_text += self.parse_element(child_element)
+
+        result = element_text + children_text + element_tail
+        return result
+
+    def tokenize_body(self, line_xpath = '//tei:body/tei:div[@type="book"]/tei:div/tei:lg[@type="stanza"]/tei:l[@n]', line_namespaces = {'tei': 'http://www.tei-c.org/ns/1.0'}):
+
+        unsorted_lines = {}
+
+        elements = self.doc.xpath(line_xpath, namespaces=line_namespaces)
+        for element in elements:
+
+#            element_text = '' if element.text is None else element.text
+
+            # Parse for the child elements
+#            if len(element):
+
+#                for child_element in list(element):
+                    
+#                    element_text += child_element
+
+#            element_tail = '' if element.tail is None else element.tail
+
+#            line_value = element_text + element_tail
+            line_value = self.parse_element(element)
+            line_index = element.get('n')
+
+            line = Line(line_value, line_index)
+
+            self.body.lines.append( line )
+
+    def tokenize(self):
+
+        self.tokenize_body()
+
+class CollatedTexts:
+
+    def __init__(self):
+
+        self.lines = {}
+        pass
+
+    def line(self, line_id):
+
+        if not line_id in self.lines:
+
+            self.lines[line_id] = {'line': None}
+
+        return self.lines[line_id]
+
+class CollatedLines:
+
+    def __init__(self):
+
+        self.witnesses = {}
+        pass
+
+    def witness(self, witness_id):
+
+        if not witness_id in self.witnesses:
+
+            self.witnesses[witness_id] = {'line': None}
+        
+        return self.witnesses[witness_id]
+
+class Collation:
+
+    def __init__(self, base_text, diffs):
+
+        self.headnotes = {}
+        self.body = {}
+        self.footnotes = {}
+        self.witnesses = {}
+
+        for diff in diffs:
+
+            for line_id, diff_line in diff.body.lines.iteritems():
+
+                self.line(line_id).witness(diff.other_text.id)['line'] = diff_line
+                self.witness(diff.other_text.id).line(line_id)['line'] = diff_line
+
+    def line(self, line_id):
+
+        if not line_id in self.body:
+
+            self.body[line_id] = CollatedLines()
+
+        return self.body[line_id]
+
+    def witness(self, witness_id):
+
+        if not witness_id in self.witnesses:
+
+            self.witnesses[witness_id] = CollatedTexts()
+        
+        return self.witnesses[witness_id]
+
+#
+
 class Tokenizer:
 
     def __init__(self):
@@ -608,8 +884,11 @@ class Tokenizer:
                 headnote_line_index = 1
                 headnote_container_stanza_elems.append(headnote_container_stanza_elem)
 
+            # Ensure that the @n attribute preserves that this is a footnote
+            headnote_line_n = str(headnote_line_index) + '-headnotes'
+
             # Create the <l> element serving as a container for the <head> element
-            headnote_line = etree.SubElement(headnote_container_stanza_elem, "l", {'n': str(headnote_line_index)}, {'tei': 'http://www.tei-c.org/ns/1.0'})
+            headnote_line = etree.SubElement(headnote_container_stanza_elem, "l", {'n': headnote_line_n }, {'tei': 'http://www.tei-c.org/ns/1.0'})
             headnote_line.text = ''.join(headnote.itertext())
             
             # Ensure that all text trailing the headnote element is preserved
@@ -626,8 +905,8 @@ class Tokenizer:
             # headnote.getparent().remove(headnote)
 
             headnote_line_index += 1
-        
-        return headnote_container_stanza_elems        
+
+        return headnote_container_stanza_elems
 
     # Parsing for footnotes within the tree for a given text node
     # @todo Refactor as TextTree.footnotes.parse()
@@ -682,8 +961,11 @@ class Tokenizer:
                 footnote_line_index = 1
                 footnote_container_stanza_elems.append(footnote_container_stanza_elem)
 
+            # Ensure that the @n attribute preserves that this is a footnote
+            footnote_line_n = str(footnote_line_index) + '-footnotes'
+
             # Create the <l> element serving as a container for the <note> element
-            footnote_line = etree.SubElement(footnote_container_stanza_elem, "l", {'n': str(footnote_line_index)}, {'tei': 'http://www.tei-c.org/ns/1.0'})
+            footnote_line = etree.SubElement(footnote_container_stanza_elem, "l", {'n': footnote_line_n}, {'tei': 'http://www.tei-c.org/ns/1.0'})
             # footnote_line.append(deepcopy(footnote))
             # footnote_line.extend(list(footnote))
             footnote_line.text = ''.join(footnote.itertext())
@@ -799,7 +1081,7 @@ class Tokenizer:
 
         # Parsing must be restricted to the '<l>' and '<p>' depth
         # @todo Refactor
-        if node.xpath('local-name()') not in ['l', 'p']:
+        if node.xpath('local-name()') not in ['l']:
 
             children = list(node)
         
@@ -813,6 +1095,11 @@ class Tokenizer:
             for sub_tree in map(Tokenizer.parse, children):
 
                 token_tree = nx.compose(token_tree, sub_tree)
+
+            return token_tree
+
+        parent = node.getparent()  # Filter for stanzas within <lg @type="stanza"> or <lg type="verse-paragraph">
+        if parent.get('type') != 'stanza' and parent.get('type') != 'verse-paragraph':
 
             return token_tree
 
@@ -855,9 +1142,6 @@ class Tokenizer:
   </text>
 </TEI>''')
 
-        footnotes = footnote_tree.xpath('//tei:l[@n="1"]', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}).pop()
-
-        
         # Structure a "footnote" stanza specifically for the parsing of footnotes
         # Resolves SPP-180
         #
@@ -1015,29 +1299,26 @@ class Tokenizer:
 
         for edge in edges:
 
-            u = edge[0]
+            u = edge[0] if isinstance(edge[0], TextToken) else edge[-1]
 
             filtered_edge = []
 
             for edge_item in diff_tree[u].items(): # For each edge between the line expression u and the related TextNodes...
 
-                line_text = edge_item[0]
-                line_attributes = edge_item[-1]
-                if(line_attributes['feature'] == 'line' and line_attributes['witness'] == 'base'): # Ensure that lines are index uniquely
+                line_text = edge_item[0] if type(edge_item[0]) == str else edge_item[-1]
+                line_attributes = edge_item[-1] if type(edge_item[-1]) == dict else edge_item[0]
+
+                if(line_attributes['witness'] == 'base'): # Ensure that lines are index uniquely
 
                     if not unicode(u) in base_line_edges:
 
                         base_line_edges.append(unicode(u))
                         filtered_diff_tree.add_edge(u, line_text, line_attributes)
-
                 else:
 
                     # filtered_edge.append(edge_item)
                     filtered_diff_tree.add_edge(u, line_text, line_attributes)
 
-        # return diff_tree
-        # filtered_diff_tree.add_edges_from(tuple(filtered_edges))
-        
         return filtered_diff_tree
 
     @staticmethod
@@ -1079,7 +1360,7 @@ class Tokenizer:
     @staticmethod
     def diff(node_u, text_u_id, node_v, text_v_id):
 
-        print "Comparing {0} to {1}".format(text_u_id, text_v_id)
+        # print "Comparing {0} to {1}".format(text_u_id, text_v_id)
 
         # Each node serves as a <tei:text> element for the text being compared
         tree_u = Tokenizer.text_tree(node_u, text_u_id)

@@ -5,7 +5,7 @@ from operator import itemgetter
 
 from tokenizer import TextToken
 
-class Collation:
+class OldCollation:
 
     html_doc = """
 

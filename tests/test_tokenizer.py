@@ -153,7 +153,35 @@ class TestTokenizer:
             doc = etree.fromstring(data)
         return doc
 
-    # test_swift_36711.tei.xml
+    @pytest.fixture
+    def swift_250_0202(self):
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/swift_250_0202.tei.xml')) as f:
+
+            data = f.read()
+            doc = etree.fromstring(data)
+        return doc
+        pass
+
+    @pytest.fixture
+    def swift_250_03P1(self):
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/swift_250_03P1.tei.xml')) as f:
+
+            data = f.read()
+            doc = etree.fromstring(data)
+        return doc
+        pass
+
+    @pytest.fixture
+    def swift_250_422R(self):
+
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/swift_250_422R.tei.xml')) as f:
+
+            data = f.read()
+            doc = etree.fromstring(data)
+        return doc
+        pass
 
     def test_init(self):
 
@@ -180,14 +208,39 @@ class TestTokenizer:
         assert '<lg n="1"/l n="3" />' in tree
         assert '<lg n="2"/l n="3" />' in tree
 
-        edges = tree['<lg n="2"/l n="3" />'].items()
+        # edges = tree['<lg n="2"/l n="3" />'].items()
 
-        edge = edges[0]
-        line_text = edge[0]
+        # edge = edges[0]
+        # line_text = edge[0]
         
         # assert line_text == 'INDENT_ELEMENTOSMALL-CAPS_CLASS_OPENNCESMALL-CAPS_CLASS_CLOSED on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
 
-    # Case 2
+    def test_text_tree_footnotes(self, tei_doc_g, tei_doc_c):
+
+        tree = Tokenizer.text_tree(tei_doc_g, 'g')
+        assert '<l n="1-footnotes" />' in tree
+
+        tree = Tokenizer.text_tree(tei_doc_c, 'c')
+        assert '<l n="1-footnotes" />' in tree
+
+    def test_text_tree_headnotes(self, tei_doc_g, tei_doc_b, tei_doc_c):
+
+        tree = Tokenizer.text_tree(tei_doc_g, 'g')
+        assert '<l n="1-headnotes" />' in tree
+
+        tree = Tokenizer.text_tree(tei_doc_b, 'b')
+        assert '<l n="1-headnotes" />' in tree
+
+    def test_text_tree_titles(self, tei_doc_g, tei_doc_b, tei_doc_c):
+
+        tree = Tokenizer.text_tree(tei_doc_g, 'g')
+        assert '<l n="1-titles" />' in tree
+
+        tree = Tokenizer.text_tree(tei_doc_b, 'b')
+        assert '<l n="1-titles" />' in tree
+
+    # Tokenizer.text_tree()
+    #
     def test_parse(self, tei_doc, tei_doc_R56503P2, tei_doc_R56503P3):
 
         tree = Tokenizer.parse(tei_doc)
@@ -195,31 +248,15 @@ class TestTokenizer:
         elems = tei_doc_R56503P3.xpath('//tei:lg', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
 
         tree_2 = Tokenizer.parse(elems[3])
-        line_2_text = tree_2['<lg n="1"/l n="2" />'].keys()[0]
+
+        line_2_text = tree_2['<l n="2" />'].keys()[0]
 
         assert line_2_text == 'Then UNDERLINE_CLASS_OPENWordsUNDERLINE_CLASS_CLOSED, no doubt, must talk of Course.'
 
         tree_3b = Tokenizer.parse(elems[4])
-        line_3_text = tree_3b['<lg n="2"/l n="3" />'].keys()[0]
+        line_3_text = tree_3b['<l n="3" />'].keys()[0]
         
         assert line_3_text == 'INDENT_ELEMENTOSMALL-CAPS_CLASS_OPENNCESMALL-CAPS_CLASS_CLOSED on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
-
-    def test_stanza_diff(self, tei_doc_a, tei_doc_b):
-
-        tokenizer = Tokenizer()
-
-        diff_tree = Tokenizer.diff(tei_doc_a, 'a', tei_doc_b, 'b')
-
-#        assert diff_tree['<l n="3" />']['On a cloud I saw a child, ']['distance'] == nltk.metrics.distance.edit_distance('On a cloud I saw a child, ', 'On cloud I saw child ')
-
-    def test_struct_diff(self, tei_doc_a, tei_doc_c):
-
-        tokenizer = Tokenizer()
-        
-        diff_tree = Tokenizer.diff(tei_doc_a, 'a', tei_doc_c, 'c')
-        
-#        assert diff_tree['<l n="3" />']['On a cloud I saw a child, ']['distance'] == nltk.metrics.distance.edit_distance('On a cloud I saw a child, ', 'On a cloud I  saw  a child, ')
-#        assert diff_tree['<l n="4" />']['And he laughing said to me: ']['distance'] == nltk.metrics.distance.edit_distance('And he laughing said to me: ', 'And he laughing said to me: ')
 
     # Tokenizer.diff()
     #
@@ -235,8 +272,40 @@ class TestTokenizer:
         diff_tree = Tokenizer.diff(tei_doc_R56503P1, 'R56503P1',
                                    tei_doc_R56503P2, 'R56503P2')
 
-        assert '<lg n="1"/l n="3" />' in diff_tree
-        assert '<lg n="2"/l n="3" />' in diff_tree
+        assert '<l n="3" />' in diff_tree
+
+        keys = filter(lambda text_token: text_token.value == 'near', diff_tree['<l n="3" />'].keys())
+        key = keys.pop()
+
+        values = diff_tree['<l n="3" />'][key]
+        assert 'distance' in values
+        assert values['distance'] == 0
+
+        assert 'feature' in values
+        assert values['feature'] == 'ngram'
+
+        assert 'witness' in values
+        assert values['witness'] != 'base'
+
+        assert 'position' in values
+        assert values['position'] == 4
+
+    def test_stanza_diff(self, tei_doc_a, tei_doc_b):
+
+        tokenizer = Tokenizer()
+
+        diff_tree = Tokenizer.diff(tei_doc_a, 'a', tei_doc_b, 'b')
+
+        # assert diff_tree['<l n="3" />']['On a cloud I saw a child, ']['distance'] == nltk.metrics.distance.edit_distance('On a cloud I saw a child, ', 'On cloud I saw child ')
+
+    def test_struct_diff(self, tei_doc_a, tei_doc_c):
+
+        tokenizer = Tokenizer()
+        
+        diff_tree = Tokenizer.diff(tei_doc_a, 'a', tei_doc_c, 'c')
+        
+#        assert diff_tree['<l n="3" />']['On a cloud I saw a child, ']['distance'] == nltk.metrics.distance.edit_distance('On a cloud I saw a child, ', 'On a cloud I  saw  a child, ')
+#        assert diff_tree['<l n="4" />']['And he laughing said to me: ']['distance'] == nltk.metrics.distance.edit_distance('And he laughing said to me: ', 'And he laughing said to me: ')
 
     # Tokenizer.stemma()
     #
@@ -255,35 +324,32 @@ class TestTokenizer:
         witnesses = [ { 'node': tei_doc_R56503P2, 'id': "R56503P2" }, { 'node': tei_doc_R56503P3, 'id': "R56503P3" } ]
         stemma = Tokenizer.stemma(base_text, witnesses)
 
-        assert '<lg n="1"/l n="3" />' in stemma
-        stanza_1_variants = map(list, stemma['<lg n="1"/l n="3" />'].items())
+        assert '<l n="3" />' in stemma
 
-        # print(stanza_1_variants)
-        assert len(stanza_1_variants) == 3
+        keys = filter(lambda text_token: text_token.value == 'Time,', stemma['<l n="3" />'].keys())
+        keys = filter(lambda key: stemma['<l n="3" />'][key]['feature'] == 'ngram', keys)
 
-        stanza_1_u = stanza_1_variants[0]
+        assert len(keys) == 3
 
-        # Anomaly of the NetworkX API
-        text_token_u = stanza_1_u[0]
-#        assert text_token_u.value == ''
+        assert 'witness' in stemma['<l n="3" />'][keys[0]]
 
-        stanza_1_v = stanza_1_variants[1]
+        features = filter(lambda key: stemma['<l n="3" />'][key]['witness'] == 'R56503P2', keys)
+        assert len(features) == 1
+        
+        key = features.pop()
+            
+        values = stemma['<l n="3" />'][key]
 
-        # Anomaly of the NetworkX API
-        text_token_v = stanza_1_v[0]
-#        assert text_token_v.value == 'INDENT_ELEMENTOnce on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
+        assert 'distance' in values
+        assert values['distance'] == 0
 
-        stanza_1_w = stanza_1_variants[2]
+        assert 'feature' in values
+        assert values['feature'] == 'ngram'
 
-        # Handling for structural differences between texts must be implemented here
-        assert '<lg n="2"/l n="3" />' in stemma
-        stanza_2_variants = stemma['<lg n="2"/l n="3" />'].items()
+        assert values['witness'] != 'base'
 
-        stanza_2_variant = stanza_2_variants[0]
-
-        stanza_2_u = stanza_2_variant[0]
-
-        # assert str(stanza_2_u) == 'INDENT_ELEMENTOnce on a Time, near UNDERLINE_CLASS_OPENChannel-RowUNDERLINE_CLASS_CLOSED,'
+        assert 'position' in values
+        assert values['position'] == 3
 
     def test_stemma_footnotes(self, tei_doc_g, tei_doc_b, tei_doc_c):
 

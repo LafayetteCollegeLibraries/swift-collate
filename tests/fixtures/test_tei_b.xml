@@ -18,11 +18,18 @@
   </teiHeader>
   <text xml:id="d1">
     <body xml:id="d2">
-      <div1 type="book" xml:id="d3">
-	<head>Songs of Guilt</head>
-	<pb n="4"/>
-	<div2 type="poem" xml:id="d4">
-	  <head>Introduction</head>
+      <div type="book" xml:id="d3">
+	<div type="poem" xml:id="d4">
+	  <head n="1">
+	    <lg n="1">
+	      <l n="1">test headnote 1</l>
+	    </lg>
+	  </head>
+	  <head n="2">
+	    <lg n="1">
+	      <l n="1">test headnote 3</l>
+	    </lg>
+	  </head>
 	  <lg n="1" type="stanza">
 	    <l n="1" >piping down the valleys wild, </l>
 	    <l n="2" >PIPING SONGS OF PLEASANT GLEE, </l>
@@ -31,11 +38,8 @@
 	  <lg n="2" type="stanza">
 	    <l n="5">Once on a Time, near <hi rend="underline">Channel-Row</hi>,</l>
 	  </lg>
-
-
-
-	</div2>
-      </div1>
+	</div>
+      </div>
     </body>
   </text>
 </TEI>
