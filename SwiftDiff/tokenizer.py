@@ -529,6 +529,14 @@ class Line(object):
 
             self.tokens.append(Token(token_value, token_index))
 
+class FootnoteLine(Line):
+
+    def __init__(self, value, index, target_id, distance_from_parent):
+        
+        self.target_id = target_id
+        self.distance_from_parent = distance_from_parent
+        super(FootnoteLine, self).__init__(value, index)
+
 class DifferenceLine(Line):
 
     def __init__(self, base_line, other_line):
@@ -581,27 +589,54 @@ class DifferenceText(object):
         self.body = DifferenceSet()
         self.footnotes = DifferenceSet()
 
-        # for line_id, line in base_text.body.lines.iteritems():
-        for line_id, line in enumerate(base_text.body.lines):
+        # This retrieves the footnotes from the text
+        for footnote_line_index, footnote_line in enumerate(base_text.footnotes.lines):
 
-            # Retrieve the line from the other text
-            this_line = base_text.body.lines[line_id]
+            # Retrieve the line from the base text
+            this_footnote_line = base_text.footnotes.lines[footnote_line_index]
 
             # Work-arounds for the sorting of lines by index
-            if line_id == 0: continue
+            try:
+
+                other_footnote_line = other_text.footnotes.lines[footnote_line_index]
+
+                diff_line = DifferenceLine(this_footnote_line, other_footnote_line)
+                
+                diff_line.tokenize()
+
+                # Construct the key from the index of the footnote concatenated to the ID for the line, concatenated to the character distance
+                footnote_key = str(footnote_line_index + 1) + this_footnote_line.target_id + '#' + str(this_footnote_line.distance_from_parent)
+
+                self.footnotes.lines[footnote_key] = diff_line
+            except:
+
+                pass
+
+        # This retrieves the lines from the body
+        for line_index, line in enumerate(base_text.body.lines):
+
+            # Retrieve the line from the base text
+            this_line = base_text.body.lines[line_index]
+
+            # Work-arounds for the sorting of lines by index
+            if line_index == 0: continue
 
             try:
 
-                other_line = other_text.body.lines[line_id]
+                other_line = other_text.body.lines[line_index]
 
                 diff_line = DifferenceLine(this_line, other_line)
                 
                 diff_line.tokenize()
 
-                self.body.lines[line_id] = diff_line
+                self.body.lines[line_index] = diff_line
             except:
 
                 pass
+
+    def __unicode__(self):
+
+        pass
 
 class Text(object):
 
@@ -649,18 +684,6 @@ class Text(object):
         elements = self.doc.xpath(line_xpath, namespaces=line_namespaces)
         for element in elements:
 
-#            element_text = '' if element.text is None else element.text
-
-            # Parse for the child elements
-#            if len(element):
-
-#                for child_element in list(element):
-                    
-#                    element_text += child_element
-
-#            element_tail = '' if element.tail is None else element.tail
-
-#            line_value = element_text + element_tail
             line_value = self.parse_element(element)
             line_index = element.get('n')
 
@@ -668,8 +691,43 @@ class Text(object):
 
             self.body.lines.append( line )
 
+#    def tokenize_footnotes(self, line_xpath = '//tei:body/tei:div[@type="book"]/tei:div//tei:note[@place="foot"]', line_namespaces = {'tei': 'http://www.tei-c.org/ns/1.0'}):
+    def tokenize_footnotes(self, line_xpath = '//tei:note[@place="foot"]', line_namespaces={'tei': 'http://www.tei-c.org/ns/1.0'}):
+
+        unsorted_lines = {}
+
+        # @todo Refactor
+        elements = self.doc.xpath(line_xpath, namespaces=line_namespaces)
+        for element in elements:
+
+            line_value = self.parse_element(element)
+            line_index = element.get('n')
+
+            # Retrieve the XML ID
+            footnote_id = element.get('{%s}id' % 'http://www.w3.org/XML/1998/namespace')
+
+            # Retrieve the target for the footnote using the neighboring <ref>
+            # ref_element = element.getprevious()
+            # target_id = ref_element.get('target')
+
+            # Retrieve the link group entry for the link
+
+            link_elements = self.doc.xpath('//tei:linkGrp/tei:link[starts-with(@target, "#' + footnote_id + '")]', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            link_element = link_elements[0]
+            link_target = link_element.get('target')
+            target_id = link_target.split(' ')[-1]
+
+            # Retrieve the distance from the parent
+            distance_from_parent = len(element.getparent().text)
+
+            # line = Line(line_value, line_index)
+            line = FootnoteLine(line_value, line_index, target_id, distance_from_parent)
+
+            self.footnotes.lines.append( line )
+
     def tokenize(self):
 
+        self.tokenize_footnotes()
         self.tokenize_body()
 
 class CollatedTexts:
@@ -713,12 +771,31 @@ class Collation:
 
         for diff in diffs:
 
+            for line_key, diff_line in diff.footnotes.lines.iteritems():
+
+                index, target, distance = line_key.split('#')
+                target_index = target.split('-')[-1]
+
+                footnote_line_index = index + ' (' + distance + ' characters into line ' + target_index + ')'
+
+                self.footnote_line(footnote_line_index).witness(diff.other_text.id)['line'] = diff_line
+                self.witness(diff.other_text.id).line(footnote_line_index)['line'] = diff_line
+
+            # Structure the difference set for indexed lines
             for line_id, diff_line in diff.body.lines.iteritems():
 
-                self.line(line_id).witness(diff.other_text.id)['line'] = diff_line
+                self.body_line(line_id).witness(diff.other_text.id)['line'] = diff_line
                 self.witness(diff.other_text.id).line(line_id)['line'] = diff_line
 
-    def line(self, line_id):
+    def footnote_line(self, line_id):
+
+        if not line_id in self.footnotes:
+
+            self.footnotes[line_id] = CollatedLines()
+
+        return self.footnotes[line_id]
+
+    def body_line(self, line_id):
 
         if not line_id in self.body:
 
@@ -781,6 +858,7 @@ class Tokenizer:
 
         except Exception as ex:
 
+            print ex.message
             return None
 
         return elem
