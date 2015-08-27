@@ -25,12 +25,10 @@
 		<th scope="row"> {{ text_id }} </th>
 
 		{% for token in line_values['line'].tokens %}
-		<th scope="row"> {{ token.value }} </th>
+		    {% module Token(token) %}
 		{% end %}
-
 	      </tr>
 	      {% end %}
-
 	    </tbody>
 	  </table>
 

@@ -28,6 +28,8 @@ import os
 import time
 from lxml import etree
 
+import importlib
+
 class LineModule(tornado.web.UIModule):
 
     # @todo Refactor using MV* architecture
@@ -60,10 +62,12 @@ class LineModule(tornado.web.UIModule):
 class TokenModule(tornado.web.UIModule):
 
     # @todo Refactor using MV* architecture
-    def render(self, token, index, distance):
+    def render(self, token):
 
-        token_classes = TextToken.classes(token)
-        classes = string.join(token_classes + ['token', 'token-' + str(index)]) if token_classes else 'token token-' + str(index)
+        token_classes = token.classes
+        classes = string.join(token_classes + ['token']) if token_classes else 'token'
+
+        distance = token.distance
 
         # Add the class unique to the edit distance for the token
         classes += ' token-distance-' + str(distance)
@@ -82,9 +86,15 @@ class TokenModule(tornado.web.UIModule):
             gradient_class += ['mild', 'moderate', 'warm', 'hot'][distance / 2]
         classes += ' ' + gradient_class
 
-        token = TextToken.escape(token)
+        # Refactor
+        if token.markup:
 
-        return self.render_string("token.html", token=token, classes=classes)
+            token_value = '<' + token.markup[0] + '>' + token.value + '</' + token.markup[0] + '>'
+        else:
+
+            token_value = token.value
+
+        return self.render_string("token.html", token=token_value, classes=classes)
 
 class Executor():
 
@@ -232,7 +242,7 @@ def poems(poem_id):
     
     for f in os.listdir( os.path.dirname(os.path.abspath(__file__)) + '/tests/fixtures/' + poem_id + '/' ):
 
-        if fnmatch.fnmatch(f, '*.tei.xml'):
+        if fnmatch.fnmatch(f, '*.tei.xml') and f[0] != '.':
 
             paths.append(f)
 
@@ -247,7 +257,7 @@ class CollateHandler(tornado.web.RequestHandler):
     executor = None # Work-around
 
     @gen.coroutine
-    def get(self, apparatus = '444', base_id = '444-0201'):
+    def get(self, apparatus = '444', base_id = '444-0201', tokenizer_name = 'PunktWordTokenizer'):
         """The GET request handler for collation
         
         Args:
@@ -286,11 +296,18 @@ class CollateHandler(tornado.web.RequestHandler):
             witness_values = { 'node': node, 'id': witness_id }
             witnesses.append( witness_values )
 
+        # Select the tokenizer
+        # tokenizer = StanfordTokenizer
+
+        # load the module, will raise ImportError if module cannot be loaded
+        m = importlib.import_module('nltk.tokenize.treebank')
+        # get the class, will raise AttributeError if class cannot be found
+        tokenizer = getattr(m, 'TreebankWordTokenizer')
+
         base_text = Text(base_text, base_id)
         base_text.tokenize()
 
         witness_texts = map(lambda witness: Text(witness['node'], witness['id']), witnesses )
-        # witness_texts = map(lambda witness: Text(witness['node'], witness['id']), witnesses[0:4] )
 
         # diffs = map(lambda witness_text: DifferenceText(base_text, witness_text), witness_texts )
 

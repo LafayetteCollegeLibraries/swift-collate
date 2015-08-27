@@ -493,10 +493,12 @@ class Footnotes(TextEntity):
 
 class Token(object):
 
-    def __init__(self, value, index):
+    def __init__(self, value, index, classes=[], markup=None):
 
         self.value = value
         self.index = index
+        self.classes = classes
+        self.markup = markup
 
 class DifferenceToken(Token):
 
@@ -504,7 +506,7 @@ class DifferenceToken(Token):
 
         self.distance = self.find_distance(base_token, other_token)
 
-        super(DifferenceToken, self).__init__(base_token.value, base_token.index)
+        super(DifferenceToken, self).__init__(other_token.value, other_token.index, other_token.classes, other_token.markup)
 
     def find_distance(self, base_token, other_token):
 
@@ -512,39 +514,79 @@ class DifferenceToken(Token):
 
         return distance
 
+class SwiftSentenceTokenizer(object):
+    """The sentence tokenizer specialized for the Swift Poems Project
+    
+    """
+
+    def tokenize(self, value):
+
+        # For handling cases related to non-breaking spaces inserted within strings (e. g. "I 'd")
+        # Please see SPP-269
+        value = re.sub(r"(.)[\s ]('.)", "\\1\\2", value)
+
+        tokens = value.split()
+
+        return tokens
+
+class SwiftCleanSentenceTokenizer(SwiftSentenceTokenizer):
+
+    def tokenize(self, value):
+
+        # Handling for \\ tokens
+        value = re.sub(r"\\(.+?)\\", "", value)
+
+        super(SwiftCleanSentenceTokenizer, self).tokenize(value)
+
 class Line(object):
 
-    def __init__(self, value, index):
+    def __init__(self, value, index, tokenizer=SwiftSentenceTokenizer, classes={}, markup={}):
 
         self.value = value
         self.index = index
         self.tokens = []
-        self.tokenizer = PunktWordTokenizer()
+        self.tokenizer = tokenizer()
+        self.classes = classes
+        self.markup = markup
 
     def tokenize(self):
 
         token_values = self.tokenizer.tokenize(self.value)
+        
+        line_value = self.value
 
+        # Need to parse the classes
         for token_index, token_value in enumerate(token_values):
 
-            self.tokens.append(Token(token_value, token_index))
+            # Filter for the classes
+            _classes = filter(lambda _class: _class['start'] >= string.find(line_value, token_value) and _class['end'] <= string.find(self.value, token_value) + len(token_value), self.classes.itervalues())
+            token_classes = map(lambda _class_key: _class_key, self.classes.iterkeys())
+
+            # Filter for the markup
+            _markup = filter(lambda _class: _class['start'] >= string.find(line_value, token_value) and _class['end'] <= string.find(self.value, token_value) + len(token_value), self.markup.itervalues())
+            token_markup = map(lambda _class_key: _class_key, self.markup.iterkeys())
+
+            # Create the token
+            token = Token(token_value, token_index, token_classes, token_markup)
+
+            self.tokens.append(token)
 
 class FootnoteLine(Line):
 
-    def __init__(self, value, index, target_id, distance_from_parent):
+    def __init__(self, value, index, target_id, distance_from_parent, tokenizer=SwiftSentenceTokenizer, classes={}, markup={}):
         
         self.target_id = target_id
         self.distance_from_parent = distance_from_parent
-        super(FootnoteLine, self).__init__(value, index)
+        super(FootnoteLine, self).__init__(value, index, tokenizer=tokenizer, classes=classes, markup=markup)
 
 class DifferenceLine(Line):
 
-    def __init__(self, base_line, other_line):
+    def __init__(self, base_line, other_line, tokenizer=SwiftSentenceTokenizer):
 
         self.other_line = other_line
         self.distance = self.find_distance(base_line, other_line)
 
-        super(DifferenceLine, self).__init__(base_line.value, base_line.index)
+        super(DifferenceLine, self).__init__(other_line.value, other_line.index, tokenizer=tokenizer, classes=other_line.classes, markup=other_line.markup)
 
     def find_distance(self, base_line, other_line):
 
@@ -557,9 +599,40 @@ class DifferenceLine(Line):
         super(DifferenceLine, self).tokenize()
         self.other_line.tokenize()
 
+        # Debug
+#        if self.index == '1' and 'Beef-steaks.' in self.value:
+
+#            print 'TRACE4'
+#            print map(lambda t: t.value, self.tokens)
+#            print 'TRACE5'
+#            print map(lambda t: t.value, self.other_line.tokens)
+
         diff_tokens = []
 
-        for base_token, other_token in zip(self.tokens, self.other_line.tokens):
+        # An alignment must be performed in order to ensure that the tokens for each line are parsed
+        base_tokens = self.tokens
+        other_tokens = self.other_line.tokens
+
+        if len(base_tokens) > other_tokens:
+
+            # Search for the terms
+            for i, other_token in enumerate(other_tokens):
+
+                # Attempt to find the token
+#                index = string.find(self.value, other_token)
+#                if index > -1:
+
+#                    pass
+                
+                pass
+            
+            pass
+        elif len(base_tokens) < other_tokens:
+
+            # 
+            pass
+
+        for base_token, other_token in zip(base_tokens, other_tokens):
 
             diff_tokens.append(DifferenceToken(base_token, other_token))
 
@@ -619,7 +692,7 @@ class DifferenceText(object):
             this_line = base_text.body.lines[line_index]
 
             # Work-arounds for the sorting of lines by index
-            if line_index == 0: continue
+            # if line_index == 0: continue
 
             try:
 
@@ -640,21 +713,27 @@ class DifferenceText(object):
 
 class Text(object):
 
-    def __init__(self, doc, doc_id):
+    MARKUP = {'SUP':'sup', 'UNDERLINE':'u'}
+
+    def __init__(self, doc, doc_id, tokenizer=SwiftSentenceTokenizer):
 
         self.headnotes = Headnotes()
         self.body = Body()
         self.footnotes = Footnotes()
 
         self.doc = doc
-
         self.id = doc_id
+        self.tokenizer = tokenizer
 
         self.tokenize()
 
     def parse_element(self, element):
 
-        result = ''
+        result = {}
+        result_text = ''
+        _result_classes = {}
+        _result_markup = {}
+
         element_text = '' if element.text is None else element.text
         element_tail = '' if element.tail is None else element.tail
 
@@ -663,18 +742,61 @@ class Text(object):
         # @todo Refactor for an encoded approach
         if element.xpath('local-name()') == 'hi':
 
-            element_text += ' ' + element.get('rend').upper()
-            element_tail = element_tail + ' ' + element.get('rend').upper()
+            # Index the class
+            class_key = element.get('rend').upper()
+
+            # Store where the class begins and ends
+            parent = element.getparent()
+            class_starts = 0 if parent.text is None else len(parent.text)            
+            class_ends = class_starts + len(element_text)
+
+            # If this is markup, encode the token
+            if class_key in self.MARKUP:
+
+                _result_markup[self.MARKUP[class_key]] = {'start':class_starts, 'end':class_ends}
+            else:
+
+                print class_key
+
+                _result_classes[class_key] = {'start':class_starts, 'end':class_ends}
+
+            element.getparent().remove(element)
 
         children_text = ''
+        children_markup = {}
+        children_classes = {}
 
         if len(element):
 
             for child_element in list(element):
 
-                children_text += self.parse_element(child_element)
+                children_values = self.parse_element(child_element)
+                children_text += children_values['text']
 
-        result = element_text + children_text + element_tail
+                # Merge the markup parsed from the children
+                _children_markup = children_markup.copy()
+                _children_markup.update(children_values['markup'])
+                children_markup = _children_markup
+
+                # Merge the classes parsed from the children
+                _children_classes = children_classes.copy()
+                _children_classes.update(children_values['classes'])
+                children_classes = _children_classes
+
+        result_text = element_text + children_text + element_tail
+
+        # Structure the markup for the line
+        result_markup = _result_markup.copy()
+        result_markup.update(children_markup)
+
+        # Structure the classes for the line
+        result_classes = _result_classes.copy()
+        result_classes.update(children_classes)
+
+        result['text'] = result_text
+        result['markup'] = result_markup
+        result['classes'] = result_classes
+
         return result
 
     def tokenize_body(self, line_xpath = '//tei:body/tei:div[@type="book"]/tei:div/tei:lg[@type="stanza"]/tei:l[@n]', line_namespaces = {'tei': 'http://www.tei-c.org/ns/1.0'}):
@@ -684,10 +806,20 @@ class Text(object):
         elements = self.doc.xpath(line_xpath, namespaces=line_namespaces)
         for element in elements:
 
-            line_value = self.parse_element(element)
+            line_values = self.parse_element(element)
+            line_value = line_values['text']
+            line_markup = line_values['markup']
+            line_classes = line_values['classes']
             line_index = element.get('n')
 
-            line = Line(line_value, line_index)
+#            if line_index == '6':
+
+#                print 'TRACE2'
+#                print etree.tostring(element)
+                # print etree.tostring(element.getparent())
+#                print line_value
+
+            line = Line(line_value, line_index, tokenizer=self.tokenizer, classes=line_classes, markup=line_markup)
 
             self.body.lines.append( line )
 
@@ -700,7 +832,17 @@ class Text(object):
         elements = self.doc.xpath(line_xpath, namespaces=line_namespaces)
         for element in elements:
 
-            line_value = self.parse_element(element)
+            # Retrieve the target for the footnote using the neighboring <ref>
+            # Prune this element (as it contains the footnote number)
+            ref_elements = element.xpath('../tei:ref', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            if ref_elements:
+
+                ref_elements[0].getparent().remove(ref_elements[0])
+
+            line_values = self.parse_element(element)
+            line_value = line_values['text']
+            line_markup = line_values['markup']
+            line_classes = line_values['classes']
             line_index = element.get('n')
 
             # Retrieve the XML ID
@@ -713,17 +855,24 @@ class Text(object):
             # Retrieve the link group entry for the link
 
             link_elements = self.doc.xpath('//tei:linkGrp/tei:link[starts-with(@target, "#' + footnote_id + '")]', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+
             link_element = link_elements[0]
             link_target = link_element.get('target')
             target_id = link_target.split(' ')[-1]
 
             # Retrieve the distance from the parent
-            distance_from_parent = len(element.getparent().text)
+            if element.getparent().text is None:
 
-            # line = Line(line_value, line_index)
-            line = FootnoteLine(line_value, line_index, target_id, distance_from_parent)
+                distance_from_parent = 0
+            else:
+                
+                distance_from_parent = len(element.getparent().text)
+
+            line = FootnoteLine(line_value, line_index, target_id, distance_from_parent, tokenizer=self.tokenizer, classes=line_classes, markup=line_markup)
 
             self.footnotes.lines.append( line )
+
+            element.getparent().remove(element)
 
     def tokenize(self):
 
@@ -774,9 +923,18 @@ class Collation:
             for line_key, diff_line in diff.footnotes.lines.iteritems():
 
                 index, target, distance = line_key.split('#')
-                target_index = target.split('-')[-1]
+                target_segments = target.split('-')
 
-                footnote_line_index = index + ' (' + distance + ' characters into line ' + target_index + ')'
+                target_index = target_segments[-1]
+
+                #spp-425-0254-title-1
+                #spp-425-0254-title-2
+                #spp-425-0254-line-41
+
+                # Retrieve the type of structure
+                target_structure = target_segments[-2]
+
+                footnote_line_index = index + ' (' + distance + ' characters into ' + target_structure + ' ' + target_index + ')'
 
                 self.footnote_line(footnote_line_index).witness(diff.other_text.id)['line'] = diff_line
                 self.witness(diff.other_text.id).line(footnote_line_index)['line'] = diff_line
@@ -811,7 +969,7 @@ class Collation:
         
         return self.witnesses[witness_id]
 
-#
+# Deprecated
 
 class Tokenizer:
 

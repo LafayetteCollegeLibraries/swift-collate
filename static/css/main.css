@@ -8,6 +8,11 @@
     font-variant: small-caps;
 }
 
+.DISPLAY-INITIAL {
+    
+    font-variant: small-caps;
+}
+
 /* Refactor using LESS */
 .gradient-severe {
 
