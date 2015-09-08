@@ -19,7 +19,7 @@ from SwiftDiff.tokenizer import Tokenizer, TextToken, Line, Text, DifferenceText
 
 from tornado.options import define, options, parse_command_line
 
-define("port", default=8080, help="run on the given port", type=int)
+define("port", default=8888, help="run on the given port", type=int)
 define("debug", default=False, help="run in debug mode")
 define("processes", default=6, help="concurrency")
 
@@ -86,14 +86,20 @@ class TokenModule(tornado.web.UIModule):
             gradient_class += ['mild', 'moderate', 'warm', 'hot'][distance / 2]
         classes += ' ' + gradient_class
 
+        token_value = token.value
+
         # Refactor
-        if token.markup:
+        for element_name, element_attr_items in token.markup.iteritems():
 
-            token_value = '<' + token.markup[0] + '>' + token.value + '</' + token.markup[0] + '>'
-        else:
+            element = etree.fromstring('<' + element_name + ' />')
+            element.text = token.value
 
-            token_value = token.value
+            for attr_name, attr_value in element_attr_items.iteritems():
+            
+                element.set(attr_name, attr_value)
 
+            token_value = etree.tostring(element)
+            
         return self.render_string("token.html", token=token_value, classes=classes)
 
 class Executor():
