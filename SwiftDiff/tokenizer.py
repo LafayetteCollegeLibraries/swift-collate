@@ -786,7 +786,6 @@ class Text(object):
 
         self.markup_starts = None
 
-
         # Python work-around
         self.last_child_values = []
         self.last_data_content_value = ''

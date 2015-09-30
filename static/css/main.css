@@ -44,3 +44,18 @@
     background-color: #F2DEDE;    
 }
 
+.navbar-header {
+
+    float:inherit;
+}
+
+.navbar-brand {
+
+    height: 64px;
+    padding: 8px;
+}
+
+.navbar-brand img {
+
+    height: 48px;
+}

@@ -30,6 +30,13 @@ from lxml import etree
 
 import importlib
 
+class FootnotesModule(tornado.web.UIModule):
+
+    # @todo Refactor using MV* architecture
+    def render(self, index, footnotes):
+
+        return self.render_string("footnotes.html", index=index, footnotes=footnotes)
+
 class LineModule(tornado.web.UIModule):
 
     # @todo Refactor using MV* architecture
@@ -263,7 +270,7 @@ class CollateHandler(tornado.web.RequestHandler):
     executor = None # Work-around
 
     @gen.coroutine
-    def get(self, apparatus = '444', base_id = '444-0201', tokenizer_name = 'PunktWordTokenizer'):
+    def get(self, apparatus = '425', base_id = '425-001B', tokenizer_name = 'PunktWordTokenizer'):
         """The GET request handler for collation
         
         Args:
@@ -275,6 +282,12 @@ class CollateHandler(tornado.web.RequestHandler):
 
         # @todo Refactor and abstract
         uris = poems(apparatus)
+
+#        if True:
+
+#            print uris
+#            self.write('trace3')
+#            return
 
         ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
         ids = ids[1:]
@@ -299,8 +312,11 @@ class CollateHandler(tornado.web.RequestHandler):
         witnesses = []
         for node, witness_id in zip(texts, ids):
 
-            witness_values = { 'node': node, 'id': witness_id }
-            witnesses.append( witness_values )
+            # Ensure that Nodes which could not be parsed are logged as server errors
+            # Resolves SPP-529
+            if node is not None:
+                witness_values = { 'node': node, 'id': witness_id }
+                witnesses.append( witness_values )
 
         # Select the tokenizer
         # tokenizer = StanfordTokenizer
@@ -315,6 +331,7 @@ class CollateHandler(tornado.web.RequestHandler):
 
         witness_texts = map(lambda witness: Text(witness['node'], witness['id']), witnesses )
 
+
         # diffs = map(lambda witness_text: DifferenceText(base_text, witness_text), witness_texts )
 
         # Collate the witnesses in parallel
@@ -323,7 +340,6 @@ class CollateHandler(tornado.web.RequestHandler):
 
         collation = Collation(base_text, diffs)
 
-        #         self.write("trace2")
         self.render("collate.html", collation=collation)
 
 class MainHandler(tornado.web.RequestHandler):
@@ -348,7 +364,7 @@ def main():
 #        static_url_prefix="static/",
         xsrf_cookies=False, # @todo Enable
         debug=options.debug,
-        ui_modules={ "Token": TokenModule, "Line": LineModule },
+        ui_modules={ "Token": TokenModule, "Line": LineModule, "Footnotes": FootnotesModule },
         )
     # app.listen(options.port)
     server = tornado.httpserver.HTTPServer(app)

@@ -4,12 +4,12 @@
       <!-- Example row of columns -->
       <div id="collation-container" class="row">
         <div class="col-md-12">
-          <h2>Collation of Witnesses</h2>
-          <p>Witnesses are organized by line, with each line being further tokenized using <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.85.5017&rep=rep1&type=pdf">Kiss, Tibor, and Strunk's Punkt tokenization algorithm</a>.</p>
+          <h2>Collation of Variant Texts</h2>
+          <p>Witnesses are organized by line, with each line being further tokenized using an approach optimized for Documents within the Swift Poems Project.</p>
 
 	  {% for line_index, lines in collation.body.iteritems() %}
 
-	  <h2>Line {{ line_index }}</h2>
+	  <h2>Line {{ line_index + 1 }}</h2>
 
 	  <h3>Line Tokens</h3>
 	  <table class="table table-striped">
@@ -56,31 +56,7 @@
 
 	  {% end %}
 	  {% for line_index, footnotes in collation.footnotes.iteritems() %}
-
-	  <h2>Footnote {{ line_index }}</h2>
-
-	  <h3>Footnote Tokens</h3>
-	  <table class="table table-striped">
-	    <thead>
-
-	      <th>Witness</th>
-	    </thead>
-
-	    <tbody>
-
-	      {% for text_id, line_values in footnotes.witnesses.iteritems() %}
-	      <tr>
-		<th scope="row"> {{ text_id }} </th>
-
-		{% for token in line_values['line'].tokens %}
-		<th scope="row"> {{ token.value }} </th>
-		{% end %}
-
-	      </tr>
-	      {% end %}
-
-	    </tbody>
-	  </table>
+	    {% module Footnotes(line_index, footnotes) %}
 	  {% end %}
 
         </div>
