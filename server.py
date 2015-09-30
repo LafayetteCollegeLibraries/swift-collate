@@ -54,12 +54,12 @@ class LineModule(tornado.web.UIModule):
         if distance == 0:
 
             gradient_class += 'none'
-        elif distance is None or distance >= 8:
+        elif distance is None or distance >= 5:
 
             gradient_class += 'severe'
         else:
 
-            gradient_class += ['mild', 'moderate', 'warm', 'hot'][distance / 2]
+            gradient_class += ['mild', 'moderate', 'warm', 'hot'][distance - 1]
         classes += ' ' + gradient_class
 
         line = Line.escape(line)
@@ -85,12 +85,12 @@ class TokenModule(tornado.web.UIModule):
         if distance == 0:
 
             gradient_class += 'none'
-        elif distance is None or distance >= 8:
+        elif distance is None or distance >= 5:
 
             gradient_class += 'severe'
         else:
 
-            gradient_class += ['mild', 'moderate', 'warm', 'hot'][distance / 2]
+            gradient_class += ['mild', 'moderate', 'warm', 'hot'][distance - 1]
         classes += ' ' + gradient_class
 
         token_value = token.value

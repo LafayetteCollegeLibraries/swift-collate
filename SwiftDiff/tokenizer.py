@@ -512,7 +512,10 @@ class DifferenceToken(Token):
 
     def find_distance(self, base_token, other_token):
 
+#        print 'trace3:' + base_token.value
+#        print 'trace4:' + other_token.value
         distance = nltk.metrics.distance.edit_distance(base_token.value, other_token.value)
+#        print 'trace1' + str(distance)
 
         return distance
 
@@ -605,7 +608,8 @@ class DifferenceLine(Line):
         self.other_line = other_line
         self.distance = self.find_distance(base_line, other_line)
 
-        super(DifferenceLine, self).__init__(other_line.value, other_line.index, tokenizer=tokenizer, classes=other_line.classes, markup=other_line.markup)
+        # super(DifferenceLine, self).__init__(other_line.value, other_line.index, tokenizer=tokenizer, classes=other_line.classes, markup=other_line.markup)
+        super(DifferenceLine, self).__init__(base_line.value, base_line.index, tokenizer=tokenizer, classes=base_line.classes, markup=base_line.markup)
 
     def find_distance(self, base_line, other_line):
 
@@ -652,8 +656,9 @@ class DifferenceLine(Line):
             pass
 
         for base_token, other_token in zip(base_tokens, other_tokens):
-
+            
             diff_tokens.append(DifferenceToken(base_token, other_token))
+#            print "trace" + str(diff_tokens[-1].distance)
 
         self.tokens = diff_tokens
 
@@ -718,7 +723,6 @@ class DifferenceText(object):
                 other_line = other_text.body.lines[line_index]
 
                 diff_line = DifferenceLine(this_line, other_line)
-                
                 diff_line.tokenize()
 
                 self.body.lines[line_index] = diff_line
