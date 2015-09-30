@@ -14,7 +14,6 @@
 	  <h3>Line Tokens</h3>
 	  <table class="table table-striped">
 	    <thead>
-
 	      <th>Witness</th>
 	    </thead>
 
@@ -22,7 +21,7 @@
 
 	      {% for text_id, line_values in lines.witnesses.iteritems() %}
 	      <tr>
-		<th scope="row"> {{ text_id }} </th>
+		<td> {{ text_id }} </td>
 
 		{% for token in line_values['line'].tokens %}
 		    {% module Token(token) %}
@@ -35,20 +34,18 @@
 	  <h3>Line Variation</h3>
 	  <table class="table table-striped">
 	    <thead>
-	      <th>Line Number</th>
 	      <th>Witness</th>
+	      <th>Line Number</th>
 	      <th>Line Text</th>
-
 	    </thead>
 
 	    <tbody>
 
 	      {% for text_id, line_values in lines.witnesses.iteritems() %}
 	      <tr>
-
-		  <th scope="row"> {{ line_index }} </th>
-		  <td> {{ text_id }} </td>
-		  <td> {{ line_values['line'].value }} </td>
+		  <td class="line-row-id"> {{ text_id }} </td>
+		  <td class="line-row-number"> {{ line_index + 1 }} </td>
+		  {% module Line(line_values['line']) %}
 	      </tr>
 	      {% end %}
 	    </tbody>

@@ -554,6 +554,14 @@ class Line(object):
         self.classes = classes
         self.markup = markup
 
+    def __unicode__(self):
+
+        return unicode(self.value).encode('utf-8')
+
+    def __str__(self):
+
+        return self.__unicode__()
+
     def tokenize(self):
 
         token_values = self.tokenizer.tokenize(self.value)

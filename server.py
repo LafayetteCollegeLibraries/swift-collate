@@ -40,10 +40,12 @@ class FootnotesModule(tornado.web.UIModule):
 class LineModule(tornado.web.UIModule):
 
     # @todo Refactor using MV* architecture
-    def render(self, line, index, distance):
+    def render(self, line):
 
-        line_classes = Line.classes(line)
-        classes = string.join(line_classes + ['line', 'line-' + str(index)]) if line_classes else 'line line-' + str(index)
+        line_classes = line.classes
+        classes = string.join(line_classes + ['line']) if line_classes else 'line'
+
+        distance = line.distance
 
         # Add the class unique to the edit distance for the line
         classes += ' line-distance-' + str(distance)
@@ -62,9 +64,9 @@ class LineModule(tornado.web.UIModule):
             gradient_class += ['mild', 'moderate', 'warm', 'hot'][distance - 1]
         classes += ' ' + gradient_class
 
-        line = Line.escape(line)
+        line_value = line.other_line.value.encode('utf-8')
 
-        return self.render_string("line.html", line=line, classes=classes)
+        return self.render_string("line.html", line=line_value, classes=classes)
 
 class TokenModule(tornado.web.UIModule):
 
