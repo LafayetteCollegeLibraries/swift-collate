@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+      <div id="poem-container" class="row">
+        <div class="col-md-12">
+	  {% for poem_id in poem_texts.keys() %}
+          <h2>{{ poem_id }}</h2>
+	  <form action="/collate/{{ poem_id }}" id="collate-form" method="post">
+	    <fieldset>
+	      <table class="table table-striped">
+		<thead>
+		  <th></th>
+		  <th>Transcript ID</th>
+		</thead>
+		<tbody id="poem-table-body-{{ poem_id }}">
+		  {% for transcript in poem_texts[poem_id] %}
+		  <tr>
+		    <td class=""><a href="/poems/{{ poem_id }}">View</td>
+		    <td>{{ transcript }}</td>
+		  </tr>
+		  {% end %}
+		</tbody>
+	      </table>
+	    </fieldset>
+	    <div>
+	    </div>
+          </form>
+	  {% end %}
+        </div>
+      </div>
+{% end %}

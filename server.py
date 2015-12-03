@@ -247,21 +247,72 @@ import fnmatch
 import os
 
 def poems(poem_id):
-    """Retrieve the paths for poems within any given collection
+    """DEPRECATED (use doc_uris)
+    Retrieve the paths for poems within any given collection
 
     :param poem_id: The ID for the set of related poems (apparatus?).
     :type poem_id: str.
     """
 
     paths = []
-    
-    for f in os.listdir( os.path.dirname(os.path.abspath(__file__)) + '/tests/fixtures/' + poem_id + '/' ):
 
+    for f in os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id + '/')):
         if fnmatch.fnmatch(f, '*.tei.xml') and f[0] != '.':
 
             paths.append(f)
 
-    uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tests/fixtures/' + poem_id + '/', path), paths)
+    uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id + '/', path), paths)
+    return uris
+
+def poem_ids():
+    """Retrieve the ID's for poems within any given collection
+
+    """
+
+    poem_dir_paths = []
+
+    for f in os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml')):
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', f)
+        if os.path.isdir(path) and len(f) == 3 and f[0] != '.':
+
+            poem_dir_paths.append(f)
+
+    return poem_dir_paths
+
+def doc_uris(poem_id, transcript_ids = []):
+    """Retrieve the transcript file URI's for any given poem
+
+    :param poem_id: The ID for the poem.
+    :type poem_id: str.
+
+    :param transcript_ids: The ID's for the transcript documents.
+    :type transcript_ids: list.
+    """
+
+    # Initialize for only the requested transcripts
+    if len(transcript_ids) > 0:
+        transcript_paths = [None] * len(transcript_ids)
+    else:
+        transcript_paths = []
+
+    for f in os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id + '/')):
+
+        if fnmatch.fnmatch(f, '*.tei.xml') and f[0] != '.':
+            # Filter and sort for only the requested transcripts
+            if len(transcript_ids) > 0:
+                path = re.sub(r'\.tei\.xml$', '', f)
+                if path in transcript_ids:
+                    i = transcript_ids.index( path )
+                    transcript_paths[i] = f
+            else:
+                transcript_paths.append(f)
+
+    # Provide a default ordering for the transcripts
+    if len(transcript_ids) == 0:
+
+        transcript_paths.sort()
+
+    uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id + '/', path), transcript_paths)
     return uris
 
 class CollateHandler(tornado.web.RequestHandler):
@@ -272,34 +323,85 @@ class CollateHandler(tornado.web.RequestHandler):
     executor = None # Work-around
 
     @gen.coroutine
-    def get(self, apparatus = '425', base_id = '425-001B', tokenizer_name = 'PunktWordTokenizer'):
+    def post(self, poem_id = '425'):
+        """The POST request handler for collation
+        
+        Args:
+           poem_id (string):   The identifier for the poem itself
+           
+           base_id (string):   The identifier for the poem used as a base during the collation
+
+        """
+
+        # @todo Refactor and abstract
+        tokenizer_name = 'PunktWordTokenizer'
+        transcript_ids = self.get_body_arguments("variants")
+        base_id = self.get_body_argument("base_text")
+
+        # Retrieve the URI's and docs for the variants
+        uris = doc_uris(poem_id, transcript_ids)
+
+        # Retrieve the URI and doc for the base text
+        base_uris = doc_uris(poem_id, [base_id])
+        base_docs = map(resolve, base_uris)
+        base_ids = map(lambda path: path.split('/')[-1].split('.')[0], base_uris)
+        base_doc = base_docs.pop()
+        base_id = base_ids.pop()
+
+        # Structure the base and witness values
+        base_values = { 'node': base_doc, 'id': base_id }
+
+        ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
+        docs = map(resolve, uris)
+
+        variant_texts = []
+        for node, witness_id in zip(docs, ids):
+
+            # Ensure that Nodes which could not be parsed are logged as server errors
+            # Resolves SPP-529
+            if node is not None:
+                witness_values = { 'node': node, 'id': witness_id }
+                variant_texts.append( witness_values )
+
+        # Retrieve the base Text
+        base_text = Text(base_doc, base_id)
+        base_text.tokenize()
+
+        # Retrieve the variant Texts
+        witness_texts = map(lambda witness: Text(witness['node'], witness['id']), variant_texts )
+
+        # Collate the witnesses in parallel
+        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
+        diffs = self.executor.map( compare, diff_args )
+
+        collation = Collation(base_text, diffs)
+
+        self.render("collate.html", collation=collation)
+
+    @gen.coroutine
+    def get(self, poem_id = '425', base_id = '425-001B'):
         """The GET request handler for collation
         
         Args:
-           apparatus (string):   The identifier for the poem itself
+           poem_id (string):   The identifier for the poem itself
            
            base_id (string):   The identifier for the poem used as a base during the collation
            
         """
 
         # @todo Refactor and abstract
-        uris = poems(apparatus)
+        tokenizer_name = 'PunktWordTokenizer'
 
-#        if True:
-
-#            print uris
-#            self.write('trace3')
-#            return
-
+        uris = poems(poem_id)
         ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
         ids = ids[1:]
 
-        apparatus_file_paths = {
-            apparatus: { 'uris': uris, 'ids': ids },
-            }
+        poem_file_paths = {
+            poem_id: { 'uris': uris, 'ids': ids },
+        }
 
-        uris = apparatus_file_paths[apparatus]['uris']
-        ids = apparatus_file_paths[apparatus]['ids']
+        uris = poem_file_paths[poem_id]['uris']
+        ids = poem_file_paths[poem_id]['ids']
 
         # Retrieve the stanzas
         texts = map(resolve, uris)
@@ -333,7 +435,6 @@ class CollateHandler(tornado.web.RequestHandler):
 
         witness_texts = map(lambda witness: Text(witness['node'], witness['id']), witnesses )
 
-
         # diffs = map(lambda witness_text: DifferenceText(base_text, witness_text), witness_texts )
 
         # Collate the witnesses in parallel
@@ -343,6 +444,86 @@ class CollateHandler(tornado.web.RequestHandler):
         collation = Collation(base_text, diffs)
 
         self.render("collate.html", collation=collation)
+
+class PoemsIndexHandler(tornado.web.RequestHandler):
+    """The request handler for viewing all poems
+
+    """
+
+    def get(self):
+
+        poem_texts = {}
+
+        for poem_id in poem_ids():
+
+            # @todo Refactor and abstract
+            uris = poems(poem_id)
+            ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
+            
+#            poem_file_paths = {
+#                poem_id: { 'uris': uris, 'ids': ids },
+#            }
+
+#            uris = poem_file_paths[poem_id]['uris']
+#            ids = poem_file_paths[poem_id]['ids']
+
+            # Retrieve the stanzas
+#            poem_docs = map(resolve, uris)
+
+#            witnesses = []
+#            for node, witness_id in zip(poem_docs, ids):
+#                if node is not None:
+#                    witness_values = { 'node': node, 'id': witness_id }
+#                    witnesses.append( witness_values )
+
+            # Construct the poem objects
+            # poem_texts[poem_id] = map(lambda poem_text: Text(poem_text['node'], poem_text['id']), witnesses)
+            poem_texts[poem_id] = ids
+
+        self.render("poems.html", poem_texts=poem_texts)
+
+class PoemsHandler(tornado.web.RequestHandler):
+    """The request handler for viewing poem variants
+
+    """
+
+    executor = None # Work-around
+
+    @gen.coroutine
+    def get(self, poem_id):
+        """The GET request handler for poems
+        
+        Args:
+           poem_id (string):   The identifier for the poem set
+
+        """
+
+        poem_texts = []
+
+        # @todo Refactor and abstract
+        uris = doc_uris(poem_id)
+        ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
+            
+        poem_file_paths = {
+            poem_id: { 'uris': uris, 'ids': ids },
+        }
+
+        uris = poem_file_paths[poem_id]['uris']
+        ids = poem_file_paths[poem_id]['ids']
+
+        # Retrieve the stanzas
+        poem_docs = map(resolve, uris)
+
+        witnesses = []
+        for node, witness_id in zip(poem_docs, ids):
+            if node is not None:
+                witness_values = { 'node': node, 'id': witness_id }
+                witnesses.append( witness_values )
+
+        # Construct the poem objects
+        poem_texts.extend(map(lambda poem_text: Text(poem_text['node'], poem_text['id']), witnesses))
+
+        self.render("poem.html", poem_id=poem_id, poem_texts=poem_texts)
 
 class MainHandler(tornado.web.RequestHandler):
 
@@ -358,6 +539,9 @@ def main():
 #            (r"/auth/logout", AuthLogoutHandler),
 #            (r"/collate/(.+?)/(.+)", CollateHandler),
             (r"/collate/([^/]*)/([^/]*)/?", CollateHandler),
+            (r"/collate/([^/]*)/?", CollateHandler),
+            (r"/poems/([^/]+)/?", PoemsHandler),
+            (r"/poems/?", PoemsIndexHandler),
         ],
         cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
         login_url="/auth/login",

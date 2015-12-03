@@ -85,75 +85,6 @@ class TextToken:
 
         return output
 
-class OldLine:
-
-    # @todo Refactor with TextToken.classes
-    #
-    @staticmethod
-    def classes(line):
-
-        output = line
-        classes = []
-
-        for element_name, element_classes in { 'indent': ['indent'],
-                                               # 'display-initial': [ 'display-initial' ]
-                                               'black-letter': [ 'black-letter' ]
-                                               }.iteritems():
-
-            if re.match(element_name.upper() + '_ELEMENT', output) or re.match(element_name.upper() + '_CLASS_OPEN', output):
-
-                classes.extend(element_classes)
-        return classes
-
-    # @todo Refactor with TextToken.escape
-    #
-    @staticmethod
-    def escape(line):
-
-        output = line
-
-        for class_name, markup in { 'italic': [ '<i>', '</i>' ],
-
-                                    'display-initial': [ '<span class="display-initial">', '</span>' ],
-                                    'underline': [ '<u>', '</u>' ],
-
-                                    'small-caps': [ '<small>', '</small>' ],
-                                    'black-letter': [ '<span>', '</span>' ],
-                                    }.iteritems():
-
-            class_closed_delim = class_name.upper() + '_CLASS_CLOSED'
-            class_opened_delim = class_name.upper() + '_CLASS_OPEN'
-
-            if class_name == 'display-initial':
-
-                # markup_match = re.match( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), output )
-                markup_match = re.match( re.compile(class_opened_delim + '(.+?)' + class_closed_delim + '(.+?\s+?)'), output )
-
-                if markup_match:
-
-                    # output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), markup[0] + markup_match.group(1).lower().capitalize() + markup[1], output )
-                    markup_content = markup_match.group(1) + markup_match.group(2)
-
-                    output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim + '(.+?\s+?)'), markup[0] + markup_content.lower().capitalize() + markup[1], output )
-                else:
-
-                    # @todo Identify why the display-initial markup regexp fails
-                    output = re.sub(class_name.upper() + '_CLASS_CLOSED', markup[-1], output)
-                    output = re.sub(class_name.upper() + '_CLASS_OPEN', markup[0], output)
-            else:
-
-                output = re.sub(class_name.upper() + '_CLASS_CLOSED', markup[-1], output)
-                output = re.sub(class_name.upper() + '_CLASS_OPEN', markup[0], output)
-                # output = re.sub( re.compile(class_opened_delim + '(.+?)' + class_closed_delim), markup[0] + '\\1' + markup[1], output )
-
-        for element_name, markup in { 'gap': '<br />',
-                                      'indent': '<span class="indent">&#x00009;</span>'
-                                      }.iteritems():
-
-            output = re.sub(element_name.upper() + '_ELEMENT', markup, output)
-
-        return output
-
 class ElementToken:  
 
     def __init__(self, name=None, attrib=None, children=None, text=None, doc=None, **kwargs):
@@ -375,106 +306,7 @@ class ComparisonSetTei:
         # Append elements from the diff tree
         self.body.append()
 
-class Alignment:
-
-    # Generate the path using the optimal alignment
-
-    # Andrew McCallum's (UMass Amherst) implementation seems to a popular implementation referenced frequently:
-    # http://people.cs.umass.edu/~mccallum/courses/cl2006/lect4−stredit.pdf
-    def stredit(self, u, v):
-        "Calculate Levenstein edit distance for strings s1 and s2."
-
-        len1 = len(u) # vertically
-        len2 = len(v) # horizontally
-
-        # Allocate the table
-        self.table = [None]*(len2+1)
-        for i in range(len2+1): table[i] = [0]*(len1+1)
-
-        # Initialize the table
-        for i in range(1, len2+1): table[i][0] = i # Populate the first row with values
-        for i in range(1, len1+1): table[0][i] = i # Populate the first column with values
-
-        # Do dynamic programming
-        for i in range(1,len2+1):
-
-            for j in range(1,len1+1):
-
-                if u[j-1] == v[i-1]:
-
-                    d = 0
-                else:
-
-                    d = 1
-                    table[i][j] = min(table[i-1][j-1] + d, # Substitution
-                                      table[i-1][j]+1, # Insertion
-                                      table[i][j-1]+1) # Deletion
-
-    # Needleman-Wunsch
-    def nwunsch(self):
-
-        pass
-
-    # Smith-Waterman
-    def swaterman(self):
-
-        pass
-
-    # Retrieve the optimal alignment path
-    # Adapted from https://github.com/alevchuk/pairwise-alignment-in-python/blob/master/alignment.py
-    def _alignment_path(self):
-
-        # table = [ [1,2,3,4,5],
-        #           [1,2,3,4,5],
-        #           [2,3,3,4,5] ]
-
-        # i = max(self.table[j])
-        # j = max(self.table[i])
-        i = len(v) + 1
-        j = len(u) + 1
-
-        path = []
-
-        while i > 0 and j > 0:
-
-            score_current = score[i][j]
-
-            score_sub = score[i-1][j-1]
-            score_delete = score[i][j-1]
-            score_insert = score[i-1][j]
-
-            if score_sub < score_current:
-
-                path.append( SUB )
-
-                i -= 1
-                j -= 1
-            elif score_insert < score_current:
-
-                path.append( INS )
-
-                j -= 1
-            elif score_delete < score_current:
-
-                path.append( DEL )
-
-                i -= 1
-            else:
-
-                raise Exception('No possible alignment found')
-
-        return path.reverse()
-
-    def alignment_path(self):
-
-        diff = ndiff('one\ntwo\nthree\n'.splitlines(1), 'ore\ntree\nemu\n'.splitlines(1))
-        diff = list(diff)
-        print ''.join(restore(diff, 1))
-
-        pass
-
 # @todo Refactor into a separate Module
-
 class TextEntity(object):
 
     def __init__(self):
@@ -1089,16 +921,30 @@ class CollatedLines:
 
     def __init__(self):
 
-        self.witnesses = {}
-        pass
+        self.witnesses = []
+
+        # dicts cannot be ordered
+        self._witness_index = {}
+
+    def witness_index(self, witness_id):
+
+        if not witness_id in self._witness_index:
+            index = len(self._witness_index.keys())
+            self._witness_index[witness_id] = index
+
+            # Work-around
+            self.witnesses.append(None)
+        else:
+            index = self._witness_index[witness_id]
+
+        return index
 
     def witness(self, witness_id):
 
-        if not witness_id in self.witnesses:
+        # Retrieve the index for the witness id
+        self.witnesses[self.witness_index(witness_id)] = {'line': None, 'id': witness_id} 
 
-            self.witnesses[witness_id] = {'line': None}
-        
-        return self.witnesses[witness_id]
+        return self.witnesses[self.witness_index(witness_id)]
 
 class Collation:
 
@@ -1107,20 +953,20 @@ class Collation:
         self.headnotes = {}
         self.body = {}
         self.footnotes = {}
-        self.witnesses = {}
+        self.witnesses = []
+
+        # dicts cannot be ordered
+        self._witness_index = {}
 
         for diff in diffs:
 
+            # Structure the difference set for footnotes
             for line_key, diff_line in diff.footnotes.lines.iteritems():
 
                 index, target, distance = line_key.split('#')
                 target_segments = target.split('-')
 
                 target_index = target_segments[-1]
-
-                #spp-425-0254-title-1
-                #spp-425-0254-title-2
-                #spp-425-0254-line-41
 
                 # Retrieve the type of structure
                 target_structure = target_segments[-2]
@@ -1152,13 +998,25 @@ class Collation:
 
         return self.body[line_id]
 
+    def witness_index(self, witness_id):
+
+        if not witness_id in self._witness_index:
+            index = len(self._witness_index.keys())
+            self._witness_index[witness_id] = index
+
+            # Work-around
+            self.witnesses.append(None)
+        else:
+            index = self._witness_index[witness_id]
+
+        return index
+
     def witness(self, witness_id):
 
-        if not witness_id in self.witnesses:
+        # Retrieve the index for the witness id
+        self.witnesses[self.witness_index(witness_id)] = CollatedTexts()
 
-            self.witnesses[witness_id] = CollatedTexts()
-        
-        return self.witnesses[witness_id]
+        return self.witnesses[self.witness_index(witness_id)]
 
 # Deprecated
 
@@ -1196,7 +1054,6 @@ class Tokenizer:
         data = response.read()
 
         try:
-
             doc = etree.fromstring(data)
             elems = doc.xpath('//tei:text', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
             elem = elems.pop()
@@ -1204,13 +1061,17 @@ class Tokenizer:
             # Append the <title> elements for the purposes of analysis
             title_elems = doc.xpath('//tei:title', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
             elem.extend(title_elems)
-
         except Exception as ex:
-
             print ex.message
             return None
-
         return elem
+
+    @staticmethod
+    def parse_poem(resource):
+
+        doc = parse_text(resource)
+        return Poem(doc)
+        pass
 
     # Parsing for titles within the tree for a given text node
     # @todo Refactor as TextTree.titles.parse()
@@ -1225,7 +1086,6 @@ class Tokenizer:
         last_stanza_elems = text_node.xpath("//tei:lg[last()]", namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
 
         if len(last_stanza_elems) == 0:
-
             raise Exception('No <tei:lg> elements could be found within this node')
         last_stanza_elem = last_stanza_elems[-1]
 
