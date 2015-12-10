@@ -8,50 +8,78 @@
 
 	  {% for line_index, lines in collation.body.iteritems() %}
 
-	  <h2>Line {{ line_index + 1 }}</h2>
+	    <h2>Line {{ line_index + 1 }}</h2>
 
-	  <h3>Line Tokens</h3>
-	  <table class="table table-striped">
-	    <thead>
-	      <th>Witness</th>
-	    </thead>
-
-	    <tbody>
-	      {% for line_values in lines.witnesses %}
-	      <tr>
-		<td> {{ line_values['id'] }} </td>
-
-		{% for token in line_values['line'].tokens %}
-		    {% module Token(token) %}
+	    <h3>Line Tokens</h3>
+	    <table class="table table-striped">
+	      <thead>
+		<th>Witness</th>
+	      </thead>
+	      
+	      <tbody>
+		{% for line_values in lines.witnesses %}
+		<tr>
+		  <td> {{ line_values['id'] }} </td>
+		  
+		  {% for token in line_values['line'].tokens %}
+		  {% module Token(token) %}
+		  {% end %}
+		</tr>
 		{% end %}
-	      </tr>
-	      {% end %}
-	    </tbody>
-	  </table>
+	      </tbody>
+	    </table>
+	    
+	    <div><a class="btn btn-default" href="#" role="button" id="toggle-line-variation" data-target="#container-line-variation">Show Line Variation</a></div>
+	    <div id="container-line-variation" class="hidden">
+	      <h3>Line Variation</h3>
+	      <table class="table table-striped table-line-variation" id="table-line-variation">
+		<thead>
+		  <th>Witness</th>
+		  <th>Line Number</th>
+		  <th>Line Text</th>
+		</thead>
+		
+		<tbody>
+		  {% for line_values in lines.witnesses %}
+		  <tr>
+		    <td class="line-row-id"> {{ line_values['id'] }} </td>
+		    <td class="line-row-number"> {{ line_index + 1 }} </td>
+		    {% module Line(line_values['line']) %}
+		  </tr>
+		  {% end %}
+		</tbody>
+	      </table>
+	    </div>
+	    
+	    {% end %}
 
-	  <div><a class="btn btn-default" href="#" role="button" id="toggle-line-variation" data-target="#container-line-variation">Show Line Variation</a></div>
-	  <div id="container-line-variation" class="hidden">
-	  <h3>Line Variation</h3>
-	  <table class="table table-striped table-line-variation" id="table-line-variation">
-	    <thead>
-	      <th>Witness</th>
-	      <th>Line Number</th>
-	      <th>Line Text</th>
-	    </thead>
+	  {% for line_index, lines in list(enumerate(collation.footnotes, start=1)) %}
 
-	    <tbody>
-	      {% for line_values in lines.witnesses %}
-	      <tr>
-		  <td class="line-row-id"> {{ line_values['id'] }} </td>
-		  <td class="line-row-number"> {{ line_index + 1 }} </td>
-		  {% module Line(line_values['line']) %}
-	      </tr>
-	      {% end %}
-	    </tbody>
-	  </table>
-	  </div>
+	    <h2>Footnote {{ line_index }}</h2>
 
-	  {% end %}
+	    <h3>Footnote Tokens</h3>
+	    <table class="table table-striped">
+	      <thead>
+		<th>Witness</th>
+		<th>Position</th>
+	      </thead>
+	      
+	      <tbody>
+		{% for line_values in lines.witnesses %}
+		<tr>
+		  <td> {{ line_values['id'] }} </td>
+		  <td> {{ line_values['line'].position }} </td>
+		  
+		  {% for token in line_values['line'].tokens %}
+		  {% module Token(token) %}
+		  {% end %}
+		</tr>
+		{% end %}
+	      </tbody>
+	    </table>
+
+	    {% end %}
+
         </div>
       </div>
 {% end %}

@@ -4,7 +4,7 @@
       <div id="poem-container" class="row">
         <div class="col-md-12">
 	  {% for poem_id in poem_texts.keys() %}
-          <h2>{{ poem_id }}</h2>
+          <h2>{{ poem_id }}-</h2>
 	  <form action="/collate/{{ poem_id }}" id="collate-form" method="post">
 	    <fieldset>
 	      <table class="table table-striped">

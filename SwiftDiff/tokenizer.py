@@ -448,6 +448,8 @@ class DifferenceLine(Line):
         self.other_line = other_line
         self.distance = self.find_distance(base_line, other_line)
 
+        self.position = ''
+
         # super(DifferenceLine, self).__init__(other_line.value, other_line.index, tokenizer=tokenizer, classes=other_line.classes, markup=other_line.markup)
         super(DifferenceLine, self).__init__(base_line.value, base_line.index, tokenizer=tokenizer, classes=base_line.classes, markup=base_line.markup)
 
@@ -942,7 +944,7 @@ class CollatedLines:
     def witness(self, witness_id):
 
         # Retrieve the index for the witness id
-        self.witnesses[self.witness_index(witness_id)] = {'line': None, 'id': witness_id} 
+        self.witnesses[self.witness_index(witness_id)] = {'line': None, 'id': witness_id, 'position': None} 
 
         return self.witnesses[self.witness_index(witness_id)]
 
@@ -952,13 +954,18 @@ class Collation:
 
         self.headnotes = {}
         self.body = {}
-        self.footnotes = {}
+        self.footnotes = []
         self.witnesses = []
 
         # dicts cannot be ordered
         self._witness_index = {}
+        self._footnote_index = {}
 
         for diff in diffs:
+
+            # Structure the difference set for titles
+
+            # Structure the difference set for headnotes
 
             # Structure the difference set for footnotes
             for line_key, diff_line in diff.footnotes.lines.iteritems():
@@ -973,7 +980,16 @@ class Collation:
 
                 footnote_line_index = index + ' (' + distance + ' characters into ' + target_structure + ' ' + target_index + ')'
 
+                diff_line.position = distance + ' characters into ' + target_structure + ' ' + target_index
+
+                # Collated footnote line tokens
+                #
+                # CollatedLines
                 self.footnote_line(footnote_line_index).witness(diff.other_text.id)['line'] = diff_line
+
+                # Collated footnote lines
+                #
+                # CollatedTexts
                 self.witness(diff.other_text.id).line(footnote_line_index)['line'] = diff_line
 
             # Structure the difference set for indexed lines
@@ -982,13 +998,43 @@ class Collation:
                 self.body_line(line_id).witness(diff.other_text.id)['line'] = diff_line
                 self.witness(diff.other_text.id).line(line_id)['line'] = diff_line
 
+    # Retrieve the footnote index
+    def footnote_index(self, footnote_id):
+        """Retrieves an index for the ordering of footnotes
+    
+        :param footnote_id: The key for the footnote
+        :type footnote_id: str.
+        :returns:  int -- the index for the list of sorted collated footnotes
+
+        """
+
+        if not footnote_id in self._footnote_index:
+            index = len(self._footnote_index.keys())
+            self._footnote_index[footnote_id] = index
+
+            # Work-around
+            self.footnotes.append(None)
+        else:
+            index = self._footnote_index[footnote_id]
+
+        return index
+
     def footnote_line(self, line_id):
+        """Sets and retrieves the set of collated lines for a footnote in the base text
+    
+        :param line_id: The key for the footnote
+        :type line_id: str.
+        :returns:  CollatedLines -- the set of collated lines for the footnotes.
 
-        if not line_id in self.footnotes:
+        """
 
-            self.footnotes[line_id] = CollatedLines()
+        # Retrieve the index for the footnote id
+        index = self.footnote_index(line_id)
 
-        return self.footnotes[line_id]
+        if index >= len(self.footnotes) - 1:
+            self.footnotes[index] = CollatedLines()
+
+        return self.footnotes[index]
 
     def body_line(self, line_id):
 
