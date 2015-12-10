@@ -31,6 +31,31 @@
 	    </table>
 	  {% end %}
 
+	  {% for line_index, lines in collation.headnotes.iteritems() %}
+
+	    <h2>Headnote {{ line_index + 1}}</h2>
+
+	    <h3>Headnote Tokens</h3>
+	    <table class="table table-striped">
+	      <thead>
+		<th>Witness</th>
+
+	      </thead>
+	      
+	      <tbody>
+		{% for line_values in lines.witnesses %}
+		<tr>
+		  <td> {{ line_values['id'] }} </td>
+
+		  {% for token in line_values['line'].tokens %}
+		    {% module Token(token) %}
+		  {% end %}
+		</tr>
+		{% end %}
+	      </tbody>
+	    </table>
+	  {% end %}
+
 	  {% for line_index, lines in collation.body.iteritems() %}
 
 	    <h2>Line {{ line_index + 1 }}</h2>
