@@ -313,6 +313,10 @@ class TextEntity(object):
 
         self.lines = []
 
+class Titles(TextEntity):
+
+    pass
+
 class Headnotes(TextEntity):
 
     pass
@@ -344,10 +348,7 @@ class DifferenceToken(Token):
 
     def find_distance(self, base_token, other_token):
 
-#        print 'trace3:' + base_token.value
-#        print 'trace4:' + other_token.value
         distance = nltk.metrics.distance.edit_distance(base_token.value, other_token.value)
-#        print 'trace1' + str(distance)
 
         return distance
 
@@ -524,9 +525,41 @@ class DifferenceText(object):
 
         self.other_text = other_text
 
+        self.titles = DifferenceSet()
         self.headnotes = DifferenceSet()
         self.body = DifferenceSet()
         self.footnotes = DifferenceSet()
+
+        # This retrieves the titles from the text
+        for title_line_index, title_line in enumerate(base_text.titles.lines):
+
+            # Retrieve the line from the base text
+            this_title_line = base_text.titles.lines[title_line_index]
+
+            # Work-arounds for the sorting of lines by index
+            try:
+
+                other_title_line = other_text.titles.lines[title_line_index]
+
+                diff_line = DifferenceLine(this_title_line, other_title_line)
+                
+                diff_line.tokenize()
+
+                # Construct the key from the index of the footnote concatenated to the ID for the line, concatenated to the character distance
+                # footnote_key = str(footnote_line_index + 1) + this_footnote_line.target_id + '#' + str(this_footnote_line.distance_from_parent)
+
+                self.titles.lines[title_line_index] = diff_line
+            except:
+
+                pass
+
+        # This retrieves the headnotes from the text
+        for headnote_line_index, headnote_line in enumerate(base_text.headnotes.lines):
+
+            this_headnote_line = base_text.headnotes.lines[headnote_line_index]
+
+            print this_headnote_line
+            print 'trace'
 
         # This retrieves the footnotes from the text
         for footnote_line_index, footnote_line in enumerate(base_text.footnotes.lines):
@@ -622,6 +655,7 @@ class Text(object):
 
     def __init__(self, doc, doc_id, tokenizer=SwiftSentenceTokenizer):
 
+        self.titles = Titles()
         self.headnotes = Headnotes()
         self.body = Body()
         self.footnotes = Footnotes()
@@ -826,6 +860,26 @@ class Text(object):
 
         return result
 
+    def tokenize_titles(self, line_xpath = '//tei:title', line_namespaces = {'tei': 'http://www.tei-c.org/ns/1.0'}):
+
+        unsorted_lines = {}
+
+        elements = self.doc.xpath(line_xpath, namespaces=line_namespaces)
+        for element in elements:
+
+            self.markup_starts = None
+
+            line_values = self.parse_element(element)
+
+            line_value = line_values['text']
+            line_markup = line_values['markup']
+            line_classes = line_values['classes']
+            line_index = element.get('n')
+
+            line = Line(line_value, line_index, tokenizer=self.tokenizer, classes=line_classes, markup=line_markup)
+
+            self.titles.lines.append( line )
+
     def tokenize_body(self, line_xpath = '//tei:body/tei:div[@type="book"]/tei:div/tei:lg[@type="stanza"]/tei:l[@n]', line_namespaces = {'tei': 'http://www.tei-c.org/ns/1.0'}):
 
         unsorted_lines = {}
@@ -901,6 +955,8 @@ class Text(object):
 
     def tokenize(self):
 
+        self.tokenize_titles()
+#        self.tokenize_headnotes()
         self.tokenize_footnotes()
         self.tokenize_body()
 
@@ -952,6 +1008,7 @@ class Collation:
 
     def __init__(self, base_text, diffs):
 
+        self.titles = {}
         self.headnotes = {}
         self.body = {}
         self.footnotes = []
@@ -963,7 +1020,15 @@ class Collation:
 
         for diff in diffs:
 
+            # print diff.__class__
+
             # Structure the difference set for titles
+            for title_line_key, diff_line in diff.titles.lines.iteritems():
+
+                title_line_index = title_line_key
+
+                self.title_line(title_line_index).witness(diff.other_text.id)['line'] = diff_line
+                self.witness(diff.other_text.id).line(title_line_index)['line'] = diff_line
 
             # Structure the difference set for headnotes
 
@@ -1035,6 +1100,14 @@ class Collation:
             self.footnotes[index] = CollatedLines()
 
         return self.footnotes[index]
+
+    def title_line(self, line_id):
+
+        if not line_id in self.titles:
+
+            self.titles[line_id] = CollatedLines()
+
+        return self.titles[line_id]
 
     def body_line(self, line_id):
 

@@ -6,6 +6,31 @@
           <h2>Collation of Variant Texts</h2>
           <p>Witnesses are organized by line, with each line being further tokenized using an approach optimized for Documents within the Swift Poems Project.</p>
 
+	  {% for line_index, lines in collation.titles.iteritems() %}
+
+	    <h2>Title {{ line_index + 1}}</h2>
+
+	    <h3>Title Tokens</h3>
+	    <table class="table table-striped">
+	      <thead>
+		<th>Witness</th>
+
+	      </thead>
+	      
+	      <tbody>
+		{% for line_values in lines.witnesses %}
+		<tr>
+		  <td> {{ line_values['id'] }} </td>
+
+		  {% for token in line_values['line'].tokens %}
+		    {% module Token(token) %}
+		  {% end %}
+		</tr>
+		{% end %}
+	      </tbody>
+	    </table>
+	  {% end %}
+
 	  {% for line_index, lines in collation.body.iteritems() %}
 
 	    <h2>Line {{ line_index + 1 }}</h2>
@@ -50,8 +75,7 @@
 		</tbody>
 	      </table>
 	    </div>
-	    
-	    {% end %}
+	  {% end %}
 
 	  {% for line_index, lines in list(enumerate(collation.footnotes, start=1)) %}
 
@@ -61,24 +85,22 @@
 	    <table class="table table-striped">
 	      <thead>
 		<th>Witness</th>
-		<th>Position</th>
+		<th>Line</th>
 	      </thead>
 	      
 	      <tbody>
 		{% for line_values in lines.witnesses %}
 		<tr>
 		  <td> {{ line_values['id'] }} </td>
-		  <td> {{ line_values['line'].position }} </td>
-		  
+		  <td><a href="#">{{ line_values['id'] }}#</a></td>
 		  {% for token in line_values['line'].tokens %}
-		  {% module Token(token) %}
+		    {% module Token(token) %}
 		  {% end %}
 		</tr>
 		{% end %}
 	      </tbody>
 	    </table>
-
-	    {% end %}
+	  {% end %}
 
         </div>
       </div>
