@@ -363,7 +363,25 @@ class SwiftSentenceTokenizer(object):
         # Please see SPP-269
         value = re.sub(r"(.)[\s ]('.)", "\\1\\2", value)
 
-        tokens = value.split()
+        # tokens = value.split()
+        tokens = []
+
+        for token in value.split():
+
+#            footnote_segs = re.split(r'\*\d', token)
+
+#            if len(footnote_segs) > 1:
+
+#                for footnote_seg in footnote_segs:
+
+#                    print 'trace 3'
+#                    print footnote_seg
+
+#                    tokens.append( footnote_seg )
+#            else:
+
+#                tokens.append(token)
+            tokens.append(token)
 
         return tokens
 
@@ -772,6 +790,21 @@ class Text(object):
             self.markup_starts = class_ends + 1
             element.getparent().remove(element)
 
+        elif element_tag_name == 'ref':
+            
+            # element_text = '*' + element_text
+            # element_text = '*'
+
+            class_ends = self.markup_starts + len(element_text)
+
+            _result_markup['footnote'] = [{
+                    
+                    'markup' : { 'span': { 'class': 'glyphicon glyphicon-hand-down' } },
+                    'range' : { 'start':self.markup_starts, 'end':class_ends }
+                    }]
+
+            self.markup_starts = class_ends + 1
+            
         elif self.markup_starts is None:
 
             self.markup_starts = 0 if element_text is None else len(element_text)
@@ -938,7 +971,11 @@ class Text(object):
             ref_elements = element.xpath('../tei:ref', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
             if ref_elements:
 
-                ref_elements[0].getparent().remove(ref_elements[0])
+                # ref_elements[0].getparent().remove(ref_elements[0])
+                # We now preserve the <ref> elements
+                # @resolves SPP-597
+                #
+                pass
 
             line_values = self.parse_element(element)
             line_value = line_values['text']

@@ -103,6 +103,9 @@ class TokenModule(tornado.web.UIModule):
             element = etree.fromstring('<' + element_name + ' />')
             element.text = token.value
 
+#            print 'trace markup element'
+#            print etree.tostring(element)
+
             for attr_name, attr_value in element_attr_items.iteritems():
             
                 element.set(attr_name, attr_value)
