@@ -468,6 +468,7 @@ class DifferenceLine(Line):
         self.distance = self.find_distance(base_line, other_line)
 
         self.position = ''
+        self.uri = ''
 
         super(DifferenceLine, self).__init__(base_line.value, base_line.index, tokenizer=tokenizer, classes=base_line.classes, markup=base_line.markup)
 
@@ -1030,7 +1031,7 @@ class CollatedTexts:
 
         if not line_id in self.lines:
 
-            self.lines[line_id] = {'line': None}
+            self.lines[line_id] = { 'line': None }
 
         return self.lines[line_id]
 
@@ -1059,13 +1060,27 @@ class CollatedLines:
     def witness(self, witness_id):
 
         # Retrieve the index for the witness id
-        self.witnesses[self.witness_index(witness_id)] = {'line': None, 'id': witness_id, 'position': None} 
+        self.witnesses[self.witness_index(witness_id)] = { 'line': None, 'id': witness_id, 'position': None }
 
         return self.witnesses[self.witness_index(witness_id)]
 
+import fnmatch
+import os
+
 class Collation:
 
-    def __init__(self, base_text, diffs):
+    def transcript_path(self, transcript_id):
+
+        uri = ''
+
+        for f in os.listdir(self.tei_dir_path):
+            if fnmatch.fnmatch(f, transcript_id + '.tei.xml') and f[0] != '.':
+
+                uri = f
+
+        return uri
+
+    def __init__(self, base_text, diffs, tei_dir_path):
 
         self.titles = {}
         self.headnotes = {}
@@ -1077,10 +1092,14 @@ class Collation:
         self._witness_index = {}
         self._footnote_index = {}
 
+        self.tei_dir_path = tei_dir_path
+
         for diff in diffs:
 
             # Structure the difference set for titles
             for title_line_key, diff_line in diff.titles.lines.iteritems():
+
+                diff_line.uri = '/transcripts/' + self.transcript_path(diff.other_text.id)
 
                 title_line_index = title_line_key
 
@@ -1090,11 +1109,15 @@ class Collation:
             # Structure the difference set for headnotes
             for headnote_line_index, diff_line in diff.headnotes.lines.iteritems():
 
+                diff_line.uri = '/transcripts/' + self.transcript_path(diff.other_text.id)
+
                 self.headnote_line(headnote_line_index).witness(diff.other_text.id)['line'] = diff_line
                 self.witness(diff.other_text.id).line(headnote_line_index)['line'] = diff_line
 
             # Structure the difference set for footnotes
             for line_key, diff_line in diff.footnotes.lines.iteritems():
+
+                diff_line.uri = '/transcripts/' + self.transcript_path(diff.other_text.id)
 
                 index, target, distance = line_key.split('#')
                 target_segments = target.split('-')
@@ -1120,6 +1143,8 @@ class Collation:
 
             # Structure the difference set for indexed lines
             for line_id, diff_line in diff.body.lines.iteritems():
+
+                diff_line.uri = '/transcripts/' + self.transcript_path(diff.other_text.id)
 
                 self.body_line(line_id).witness(diff.other_text.id)['line'] = diff_line
                 self.witness(diff.other_text.id).line(line_id)['line'] = diff_line

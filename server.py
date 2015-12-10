@@ -103,9 +103,6 @@ class TokenModule(tornado.web.UIModule):
             element = etree.fromstring('<' + element_name + ' />')
             element.text = token.value
 
-#            print 'trace markup element'
-#            print etree.tostring(element)
-
             for attr_name, attr_value in element_attr_items.iteritems():
             
                 element.set(attr_name, attr_value)
@@ -157,10 +154,10 @@ mongo_host = '139.147.4.144'
 mongo_port = 27017
 
 # MongoDB instance
-client = MongoClient(mongo_host, mongo_port)
+# client = MongoClient(mongo_host, mongo_port)
 
 # Retrieve swift database
-cache_db = client['swift']
+# cache_db = client['swift']
 
 def get_value(value):
 
@@ -229,7 +226,7 @@ def resolve(uri, update=False):
 
         return Tokenizer.parse_text(uri)
 
-    doc = cache_db['texts'].find_one({'uri': uri})
+#    doc = cache_db['texts'].find_one({'uri': uri})
 
 #    if not update and doc:
     if False:
@@ -317,6 +314,24 @@ def doc_uris(poem_id, transcript_ids = []):
 
     uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id + '/', path), transcript_paths)
     return uris
+
+class TranscriptsHandler(tornado.web.StaticFileHandler):
+    """The request handler for collation operations
+
+    """
+
+    def get(self, transcript_id):
+
+        uri = ''
+
+        for dirName, subdirList, fileList in os.walk(self.root):
+            for f in fileList:
+                if fnmatch.fnmatch(f, transcript_id):
+
+                    uri = f
+                    uri = os.path.join(dirName, uri)
+
+        super(TranscriptsHandler, self).get(uri)
 
 class CollateHandler(tornado.web.RequestHandler):
     """The request handler for collation operations
@@ -444,7 +459,9 @@ class CollateHandler(tornado.web.RequestHandler):
         diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
         diffs = self.executor.map( compare, diff_args )
 
-        collation = Collation(base_text, diffs)
+        # poem_id = '425', base_id = '425-001B'
+        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
+        collation = Collation(base_text, diffs, tei_dir_path)
 
         self.render("collate.html", collation=collation)
 
@@ -534,6 +551,9 @@ class MainHandler(tornado.web.RequestHandler):
         self.render("index.html")
 
 def main():
+
+    tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml')
+
     parse_command_line()
     app = tornado.web.Application(
         [
@@ -545,6 +565,7 @@ def main():
             (r"/collate/([^/]*)/?", CollateHandler),
             (r"/poems/([^/]+)/?", PoemsHandler),
             (r"/poems/?", PoemsIndexHandler),
+            (r"/transcripts/([^/]+)/?", TranscriptsHandler, { 'path': tei_dir_path }),
         ],
         cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
         login_url="/auth/login",
