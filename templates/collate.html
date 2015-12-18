@@ -102,6 +102,31 @@
 	    </div>
 	  {% end %}
 
+	  {% for line_index, lines in list(enumerate(collation.title_footnotes, start=1)) %}
+
+	    <h2>Footnote (Title) {{ line_index }}</h2>
+
+	    <h3>Footnote Tokens</h3>
+	    <table class="table table-striped">
+	      <thead>
+		<th>Witness</th>
+		<th>Line</th>
+	      </thead>
+	      
+	      <tbody>
+		{% for line_values in lines.witnesses %}
+		<tr>
+		  <td><a href="{{ line_values['line'].uri }}"> {{ line_values['id'] }} </a></td>
+		  <td><a href="#">{{ line_values['id'] }}#</a></td>
+		  {% for token in line_values['line'].tokens %}
+		    {% module Token(token) %}
+		  {% end %}
+		</tr>
+		{% end %}
+	      </tbody>
+	    </table>
+	  {% end %}
+
 	  {% for line_index, lines in list(enumerate(collation.footnotes, start=1)) %}
 
 	    <h2>Footnote {{ line_index }}</h2>

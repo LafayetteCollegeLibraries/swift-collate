@@ -15,7 +15,12 @@ import networkx as nx
 import re
 
 # from SwiftDiff.collation import Collation
-from SwiftDiff.tokenizer import Tokenizer, TextToken, Line, Text, DifferenceText, Collation
+# from SwiftDiff import TextToken, Line, Text, DifferenceText, Collation
+from SwiftDiff.tokenizer import Tokenizer
+from SwiftDiff import TextToken
+from SwiftDiff.text import Line, Text
+from SwiftDiff.collate import DifferenceText, Collation
+from SwiftDiff.tokenize import Tokenizer, SwiftSentenceTokenizer
 
 from tornado.options import define, options, parse_command_line
 
@@ -159,40 +164,6 @@ mongo_port = 27017
 # Retrieve swift database
 # cache_db = client['swift']
 
-def get_value(value):
-
-    time.sleep(0.5)
-    output = os.getpid()
-    return str(output)
-
-def tokenize_diff(params):
-
-    base_values = params[0]
-    base_values['node'] = etree.XML(base_values['node'])
-
-    witness_values = params[1]
-    witness_values['node'] = etree.XML(witness_values['node'])
-
-    # Attempt to retrieve the cached diff tree    
-    tree = Tokenizer.diff(base_values['node'], base_values['id'], witness_values['node'], witness_values['id'])
-
-    return tree
-
-def tokenize(params):
-
-    base_values = params[0]
-    base_values['node'] = etree.XML(base_values['node'])
-
-    witnesses = params[1]
-    witnesses = map(lambda witness_values: { 'node': etree.XML(witness_values['node']), 'id': witness_values['id'] }, witnesses)
-
-    # Iterate for witnesses
-    # base_values = params[0]
-    # base_values['node'] = etree.parse(base_values['node'])
-
-    stemma = Tokenizer.stemma(base_values, witnesses)
-    return stemma
-
 def compare(_args, update=False):
     """Compares two <tei:text> Element trees
 
@@ -206,7 +177,7 @@ def compare(_args, update=False):
     # Attempt to retrieve the results from the cache
     # doc = cache_db['diff_texts'].find_one({'uri': uri})
     
-    diff = DifferenceText(base_text, other_text)
+    diff = DifferenceText(base_text, other_text, SwiftSentenceTokenizer)
     
     return diff
 
@@ -382,11 +353,11 @@ class CollateHandler(tornado.web.RequestHandler):
                 variant_texts.append( witness_values )
 
         # Retrieve the base Text
-        base_text = Text(base_doc, base_id)
+        base_text = Text(base_doc, base_id, SwiftSentenceTokenizer)
         base_text.tokenize()
 
         # Retrieve the variant Texts
-        witness_texts = map(lambda witness: Text(witness['node'], witness['id']), variant_texts )
+        witness_texts = map(lambda witness: Text(witness['node'], witness['id'], SwiftSentenceTokenizer), variant_texts )
 
         # Collate the witnesses in parallel
         diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
@@ -448,10 +419,10 @@ class CollateHandler(tornado.web.RequestHandler):
         # get the class, will raise AttributeError if class cannot be found
         tokenizer = getattr(m, 'TreebankWordTokenizer')
 
-        base_text = Text(base_text, base_id)
+        base_text = Text(base_text, base_id, SwiftSentenceTokenizer)
         base_text.tokenize()
 
-        witness_texts = map(lambda witness: Text(witness['node'], witness['id']), witnesses )
+        witness_texts = map(lambda witness: Text(witness['node'], witness['id'], SwiftSentenceTokenizer), witnesses )
 
         # diffs = map(lambda witness_text: DifferenceText(base_text, witness_text), witness_texts )
 
@@ -459,7 +430,6 @@ class CollateHandler(tornado.web.RequestHandler):
         diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
         diffs = self.executor.map( compare, diff_args )
 
-        # poem_id = '425', base_id = '425-001B'
         tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
         collation = Collation(base_text, diffs, tei_dir_path)
 
@@ -479,25 +449,7 @@ class PoemsIndexHandler(tornado.web.RequestHandler):
             # @todo Refactor and abstract
             uris = poems(poem_id)
             ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
-            
-#            poem_file_paths = {
-#                poem_id: { 'uris': uris, 'ids': ids },
-#            }
 
-#            uris = poem_file_paths[poem_id]['uris']
-#            ids = poem_file_paths[poem_id]['ids']
-
-            # Retrieve the stanzas
-#            poem_docs = map(resolve, uris)
-
-#            witnesses = []
-#            for node, witness_id in zip(poem_docs, ids):
-#                if node is not None:
-#                    witness_values = { 'node': node, 'id': witness_id }
-#                    witnesses.append( witness_values )
-
-            # Construct the poem objects
-            # poem_texts[poem_id] = map(lambda poem_text: Text(poem_text['node'], poem_text['id']), witnesses)
             poem_texts[poem_id] = ids
 
         self.render("poems.html", poem_texts=poem_texts)
@@ -541,7 +493,7 @@ class PoemsHandler(tornado.web.RequestHandler):
                 witnesses.append( witness_values )
 
         # Construct the poem objects
-        poem_texts.extend(map(lambda poem_text: Text(poem_text['node'], poem_text['id']), witnesses))
+        poem_texts.extend(map(lambda poem_text: Text(poem_text['node'], poem_text['id'], SwiftSentenceTokenizer), witnesses))
 
         self.render("poem.html", poem_id=poem_id, poem_texts=poem_texts)
 
