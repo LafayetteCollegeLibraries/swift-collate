@@ -203,6 +203,11 @@ class Text(object):
                     }]
 
             self.markup_starts = class_ends + 1
+
+        elif element_tag_name == 'lb':
+            # Ensures that line breaks are tokenized as blank spaces (" ")
+            # Resolves SPP-609
+            element_text = ' '
             
         elif self.markup_starts is None:
 
