@@ -16,7 +16,7 @@ import re
 
 # from SwiftDiff.collation import Collation
 # from SwiftDiff import TextToken, Line, Text, DifferenceText, Collation
-from SwiftDiff.tokenizer import Tokenizer
+# from SwiftDiff.tokenizer import Tokenizer
 from SwiftDiff import TextToken
 from SwiftDiff.text import Line, Text
 from SwiftDiff.collate import DifferenceText, Collation
@@ -38,7 +38,10 @@ from lxml import etree
 import importlib
 
 from pymongo import MongoClient
+from bson.binary import Binary
+import ConfigParser
 import fnmatch
+import pickle
 
 class FootnotesModule(tornado.web.UIModule):
 
@@ -121,53 +124,61 @@ class TokenModule(tornado.web.UIModule):
             
         return self.render_string("token.html", token=token_value, classes=classes)
 
-class Executor():
-
-    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
-
-    # Blocking task for the generation of the stemma
-    @run_on_executor
-    def stemma(self, base_values, witnesses):
-
-        return Tokenizer.stemma(base_values, witnesses)
-
-    # Blocking task for the merging of stemma sub-trees
-    @run_on_executor
-    def stemma_merge(self, stemma_u, stemma_v):
-
-        return nx.compose(stemma_u, stemma_v)
-
-
-
-@gen.coroutine
-def async_run(func, *args, **kwargs):
-    """ Runs the given function in a subprocess.
-
-    This wraps the given function in a gen.Task and runs it
-    in a multiprocessing.Pool. It is meant to be used as a
-    Tornado co-routine. Note that if func returns an Exception 
-    (or an Exception sub-class), this function will raise the 
-    Exception, rather than return it.
-
-    """
-    result = yield gen.Task(pool.apply_async, func, args, kwargs)
-    if isinstance(result, Exception):
-        raise result
-    raise Return(result)
-
 # Work-around for multiprocessing within Tornado
 pool = ProcessPoolExecutor(max_workers=MAX_WORKERS)
 
+# Retrieve the database
+config = ConfigParser.RawConfigParser()
+config.read( os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'swift_collate.cfg')  )
+    
+host = config.get('MongoDB', 'host')
+port = config.getint('MongoDB', 'port')
+client = MongoClient(host, port)
 
+def cache(collection_name, key, value=None):
 
-mongo_host = '139.147.4.144'
-mongo_port = 27017
+    db = client['swift_collate']
+    collection = db[collection_name]
 
-# MongoDB instance
-# client = MongoClient(mongo_host, mongo_port)
+    if value is None:
+        doc = collection.find_one(key)
+        if doc is None:
+            return None
+        cached = pickle.loads(doc['data'])
+    else:
+        cached = pickle.dumps(value)
 
-# Retrieve swift database
-# cache_db = client['swift']
+        data = key.copy()
+        data.update({'data': Binary(cached)})
+
+        collection.find_one_and_replace(key, data, upsert=True)
+
+    return cached
+
+def collate_async(executor, base_text, witness_texts, poem_id, base_id):
+    """Collates a set of texts asynchronously
+
+    :param executor: 
+    :type executor: 
+    """
+
+    key = {'base_text': base_id}
+
+    # Attempt to retrieve this from the cache
+    doc = cache('collation_cache', key)
+    if doc is None:
+        # Collate the witnesses in parallel
+        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
+        diffs = executor.map( compare, diff_args )
+
+        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
+        result = Collation(base_text, diffs, tei_dir_path)
+        cache('collation_cache', key, result)
+
+    else:
+        result = doc
+
+    return result
 
 def compare(_args, update=False):
     """Compares two <tei:text> Element trees
@@ -218,25 +229,6 @@ def resolve(uri, update=False):
 
 #    return result
     return Tokenizer.parse_text(uri)
-
-
-def poems(poem_id):
-    """DEPRECATED (use doc_uris)
-    Retrieve the paths for poems within any given collection
-
-    :param poem_id: The ID for the set of related poems (apparatus?).
-    :type poem_id: str.
-    """
-
-    paths = []
-
-    for f in os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id + '/')):
-        if fnmatch.fnmatch(f, '*.tei.xml') and f[0] != '.':
-
-            paths.append(f)
-
-    uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id + '/', path), paths)
-    return uris
 
 def poem_ids():
     """Retrieve the ID's for poems within any given collection
@@ -364,12 +356,14 @@ class CollateHandler(tornado.web.RequestHandler):
         # Retrieve the variant Texts
         witness_texts = map(lambda witness: Text(witness['node'], witness['id'], SwiftSentenceTokenizer), variant_texts )
 
-        # Collate the witnesses in parallel
-        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
-        diffs = self.executor.map( compare, diff_args )
+        collation = collate_async(self.executor, base_text, witness_texts, poem_id, base_id)
 
-        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
-        collation = Collation(base_text, diffs, tei_dir_path)
+        # Collate the witnesses in parallel
+#        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
+#        diffs = self.executor.map( compare, diff_args )
+
+#        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
+#        collation = Collation(base_text, diffs, tei_dir_path)
 
         self.render("collate.html", collation=collation)
 
@@ -430,14 +424,14 @@ class CollateHandler(tornado.web.RequestHandler):
 
         witness_texts = map(lambda witness: Text(witness['node'], witness['id'], SwiftSentenceTokenizer), witnesses )
 
-        # diffs = map(lambda witness_text: DifferenceText(base_text, witness_text), witness_texts )
-
         # Collate the witnesses in parallel
-        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
-        diffs = self.executor.map( compare, diff_args )
+        collation = collate_async(self.executor, base_text, witness_texts, poem_id, base_id)
 
-        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
-        collation = Collation(base_text, diffs, tei_dir_path)
+#        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
+#        diffs = self.executor.map( compare, diff_args )
+
+#        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
+#        collation = Collation(base_text, diffs, tei_dir_path)
 
         self.render("collate.html", collation=collation)
 
