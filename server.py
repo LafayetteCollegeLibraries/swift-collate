@@ -24,9 +24,11 @@ from SwiftDiff.tokenize import Tokenizer, SwiftSentenceTokenizer
 
 from tornado.options import define, options, parse_command_line
 
+MAX_WORKERS=18
+
 define("port", default=8888, help="run on the given port", type=int)
 define("debug", default=False, help="run in debug mode")
-define("processes", default=6, help="concurrency")
+define("processes", default=MAX_WORKERS, help="concurrency")
 
 import subprocess
 import os
@@ -34,6 +36,9 @@ import time
 from lxml import etree
 
 import importlib
+
+from pymongo import MongoClient
+import fnmatch
 
 class FootnotesModule(tornado.web.UIModule):
 
@@ -118,7 +123,7 @@ class TokenModule(tornado.web.UIModule):
 
 class Executor():
 
-    executor = ThreadPoolExecutor(max_workers=12)
+    executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     # Blocking task for the generation of the stemma
     @run_on_executor
@@ -151,9 +156,9 @@ def async_run(func, *args, **kwargs):
     raise Return(result)
 
 # Work-around for multiprocessing within Tornado
-pool = ProcessPoolExecutor(max_workers=6)
+pool = ProcessPoolExecutor(max_workers=MAX_WORKERS)
 
-from pymongo import MongoClient
+
 
 mongo_host = '139.147.4.144'
 mongo_port = 27017
@@ -214,8 +219,6 @@ def resolve(uri, update=False):
 #    return result
     return Tokenizer.parse_text(uri)
 
-import fnmatch
-import os
 
 def poems(poem_id):
     """DEPRECATED (use doc_uris)
@@ -351,6 +354,8 @@ class CollateHandler(tornado.web.RequestHandler):
             if node is not None:
                 witness_values = { 'node': node, 'id': witness_id }
                 variant_texts.append( witness_values )
+            else:
+                print "Failed to parse the XML for %s" % witness_id
 
         # Retrieve the base Text
         base_text = Text(base_doc, base_id, SwiftSentenceTokenizer)
@@ -363,7 +368,8 @@ class CollateHandler(tornado.web.RequestHandler):
         diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
         diffs = self.executor.map( compare, diff_args )
 
-        collation = Collation(base_text, diffs)
+        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
+        collation = Collation(base_text, diffs, tei_dir_path)
 
         self.render("collate.html", collation=collation)
 
@@ -381,7 +387,7 @@ class CollateHandler(tornado.web.RequestHandler):
         # @todo Refactor and abstract
         tokenizer_name = 'PunktWordTokenizer'
 
-        uris = poems(poem_id)
+        uris = doc_uris(poem_id)
         ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
         ids = ids[1:]
 
@@ -447,7 +453,7 @@ class PoemsIndexHandler(tornado.web.RequestHandler):
         for poem_id in poem_ids():
 
             # @todo Refactor and abstract
-            uris = poems(poem_id)
+            uris = doc_uris(poem_id)
             ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
 
             poem_texts[poem_id] = ids
@@ -531,8 +537,8 @@ def main():
     # app.listen(options.port)
     server = tornado.httpserver.HTTPServer(app)
     server.bind(options.port)
-    server.start(0)
-    CollateHandler.executor = ProcessPoolExecutor(max_workers=6)
+    server.start(MAX_WORKERS)
+    CollateHandler.executor = ProcessPoolExecutor(max_workers=MAX_WORKERS)
     ioloop = tornado.ioloop.IOLoop.current().start()
     # ioloop = tornado.ioloop.IOLoop.instance()
     # executor = Executor()

@@ -163,29 +163,30 @@ class Text(object):
         elif element_tag_name in self.EMPHATIC_MARKUP_TAGS:
 
             # Index the class
-            emphatic_rend_value = element.get('rend').upper()
+            if element.get('rend'):
+                emphatic_rend_value = element.get('rend').upper()
 
             # Store where the class begins and ends
 #            parent = element.getparent()
 #            class_starts = 0 if parent.text is None else len(parent.text)            
 #            class_ends = class_starts + len(element_text)
-            class_ends = self.markup_starts + len(element_text)
+                class_ends = self.markup_starts + len(element_text)
 
             # If this is markup, encode the token
-            if emphatic_rend_value in self.EMPHATIC_MARKUP:
+                if emphatic_rend_value in self.EMPHATIC_MARKUP:
 
                 # _result_markup[self.EMPHATIC_MARKUP[emphatic_rend_value]] = {'start':class_starts, 'end':class_ends}
-                _result_markup[emphatic_rend_value] = [{
+                    _result_markup[emphatic_rend_value] = [{
                     
-                    'markup' : self.EMPHATIC_MARKUP[emphatic_rend_value],
-                    'range' : {'start':self.markup_starts, 'end':class_ends}
-                    }]
-            else:
+                            'markup' : self.EMPHATIC_MARKUP[emphatic_rend_value],
+                            'range' : {'start':self.markup_starts, 'end':class_ends}
+                            }]
+                else:
 
-                _result_classes[emphatic_rend_value] = {'start':self.markup_starts, 'end':class_ends}
+                    _result_classes[emphatic_rend_value] = {'start':self.markup_starts, 'end':class_ends}
 
-            self.markup_starts = class_ends + 1
-            element.getparent().remove(element)
+                self.markup_starts = class_ends + 1
+                element.getparent().remove(element)
 
         elif element_tag_name == 'ref':
             
@@ -399,28 +400,29 @@ class Text(object):
 
             link_elements = self.doc.xpath('//tei:linkGrp/tei:link[starts-with(@target, "#' + footnote_id + '")]', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
 
-            link_element = link_elements[0]
-            link_target = link_element.get('target')
-            target_id = link_target.split(' ')[-1]
+            if len(link_elements) > 0:
+                link_element = link_elements[0]
+                link_target = link_element.get('target')
+                target_id = link_target.split(' ')[-1]
 
-            # Retrieve the distance from the parent
-            if element.getparent().text is None:
+                # Retrieve the distance from the parent
+                if element.getparent().text is None:
 
-                distance_from_parent = 0
-            else:
+                    distance_from_parent = 0
+                else:
                 
-                distance_from_parent = len(element.getparent().text)
+                    distance_from_parent = len(element.getparent().text)
 
-            line = FootnoteLine(line_value, line_index, target_id, distance_from_parent, tokenizer=self.tokenizer, classes=line_classes, markup=line_markup)
+                line = FootnoteLine(line_value, line_index, target_id, distance_from_parent, tokenizer=self.tokenizer, classes=line_classes, markup=line_markup)
 
-            if re.match(r'.+\-title\-', target_id):
+                if re.match(r'.+\-title\-', target_id):
 
-                self.title_footnotes.lines.append( line )
-            else:
+                    self.title_footnotes.lines.append( line )
+                else:
 
-                # There are probably cases in which <note @type="head"> children also feature footnotes
-                # @todo Resolve
-                self.footnotes.lines.append( line )
+                    # There are probably cases in which <note @type="head"> children also feature footnotes
+                    # @todo Resolve
+                    self.footnotes.lines.append( line )
 
             element.getparent().remove(element)
 
