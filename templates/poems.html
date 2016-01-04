@@ -5,17 +5,18 @@
         <div class="col-md-12">
 	  {% for poem_id in poem_texts.keys() %}
           <h2>{{ poem_id }}-</h2>
+	  <a href="/poems/{{ poem_id }}"><h3>Collate Poem</h3></a>
 	  <form action="/collate/{{ poem_id }}" id="collate-form" method="post">
 	    <fieldset>
 	      <table class="table table-striped">
 		<thead>
-		  <th></th>
+		  <th>Encoded Transcript (TEI)</th>
 		  <th>Transcript ID</th>
 		</thead>
 		<tbody id="poem-table-body-{{ poem_id }}">
-		  {% for transcript in poem_texts[poem_id] %}
+		  {% for transcript, uri in zip(poem_texts[poem_id]['ids'], poem_texts[poem_id]['uris']) %}
 		  <tr>
-		    <td class=""><a href="/poems/{{ poem_id }}">View</td>
+		    <td class=""><a href="{{ uri }}">View</td>
 		    <td>{{ transcript }}</td>
 		  </tr>
 		  {% end %}

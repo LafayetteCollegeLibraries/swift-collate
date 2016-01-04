@@ -291,9 +291,9 @@ class TranscriptsHandler(tornado.web.StaticFileHandler):
         uri = ''
 
         for dirName, subdirList, fileList in os.walk(self.root):
-            for f in fileList:
-                if fnmatch.fnmatch(f, transcript_id):
 
+            for f in fileList:
+                if fnmatch.fnmatch(f, transcript_id + '.tei.xml'):
                     uri = f
                     uri = os.path.join(dirName, uri)
 
@@ -447,10 +447,15 @@ class PoemsIndexHandler(tornado.web.RequestHandler):
         for poem_id in poem_ids():
 
             # @todo Refactor and abstract
+            # Retrieve the URI's for a given poem
             uris = doc_uris(poem_id)
             ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
+            slugs = map(lambda transcript_id: '/transcripts/' + transcript_id, ids)
 
-            poem_texts[poem_id] = ids
+            # diff_line.uri = '/transcripts/' + self.transcript_path(diff.other_text.id)
+
+            poem_text = {'ids': ids, 'uris': slugs}
+            poem_texts[poem_id] = poem_text
 
         self.render("poems.html", poem_texts=poem_texts)
 
