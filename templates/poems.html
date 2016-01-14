@@ -5,8 +5,8 @@
         <div class="col-md-12">
 	  {% for poem_id in poem_texts.keys() %}
           <h2>{{ poem_id }}-</h2>
-	  <a href="/poems/{{ poem_id }}"><h3>Collate Poem</h3></a>
-	  <form action="/collate/{{ poem_id }}" id="collate-form" method="post">
+	  <a href="/collate/poems/{{ poem_id }}"><h3>Collate Poem</h3></a>
+	  <form action="/collate/collate/{{ poem_id }}" id="collate-form" method="post">
 	    <fieldset>
 	      <table class="table table-striped">
 		<thead>

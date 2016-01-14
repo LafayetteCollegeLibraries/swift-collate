@@ -127,7 +127,6 @@ class DifferenceText(object):
             # if line_index == 0: continue
 
             try:
-
                 other_line = other_text.body.lines[line_index]
 
                 diff_line = DifferenceLine(this_line, other_line, tokenizer)

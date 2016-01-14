@@ -113,6 +113,19 @@ class Text(object):
 
 #            self.markup_starts = 0 if parent.text is None else len(parent.text)
 
+        # Parsing for line indentation
+        if element_tag_name == 'l':
+
+            if element.get('rend'):
+                rend_value = element.get('rend').upper()
+                index_rend_m = re.match(r'INDENT\((\d)\)', rend_value)
+
+                # If there is an indentation specified for the line element...
+                if index_rend_m:
+                    index_rend = int(index_rend_m.group(1))
+                    index_tokens = ''.join(['|'] * 4)
+                    element_text = index_tokens + element_text
+
         # Specialized handling for editorial markup
         if element_tag_name in self.EDITORIAL_MARKUP_TAGS:
 
@@ -208,7 +221,9 @@ class Text(object):
         elif element_tag_name == 'lb':
             # Ensures that line breaks are tokenized as blank spaces (" ")
             # Resolves SPP-609
-            element_text = ' '
+            # element_text = ' '
+            # Resolves SPP-620
+            element_text = '_'
             
         elif self.markup_starts is None:
 

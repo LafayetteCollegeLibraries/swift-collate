@@ -57,7 +57,6 @@ class Collation:
             if fnmatch.fnmatch(f, transcript_id + '.tei.xml') and f[0] != '.':
 
                 uri = f
-
         return uri
 
     def __init__(self, base_text, diffs, tei_dir_path):

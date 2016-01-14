@@ -29,6 +29,7 @@ MAX_WORKERS=18
 define("port", default=8888, help="run on the given port", type=int)
 define("debug", default=False, help="run in debug mode")
 define("processes", default=MAX_WORKERS, help="concurrency")
+define("cache", default=True, help="caching", type=bool)
 
 import subprocess
 import os
@@ -166,7 +167,8 @@ def collate_async(executor, base_text, witness_texts, poem_id, base_id):
 
     # Attempt to retrieve this from the cache
     doc = cache('collation_cache', key)
-    if doc is None:
+#    if doc is None:
+    if True:
         # Collate the witnesses in parallel
         diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
         diffs = executor.map( compare, diff_args )
@@ -354,7 +356,7 @@ class CollateHandler(tornado.web.RequestHandler):
         base_text.tokenize()
 
         # Retrieve the variant Texts
-        witness_texts = map(lambda witness: Text(witness['node'], witness['id'], SwiftSentenceTokenizer), variant_texts )
+        witness_texts = map(lambda witness: Text(witness['node'], witness['id'], SwiftSentenceTokenizer), variant_texts)
 
         collation = collate_async(self.executor, base_text, witness_texts, poem_id, base_id)
 
@@ -528,7 +530,7 @@ def main():
         login_url="/auth/login",
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
         static_path=os.path.join(os.path.dirname(__file__), "static"),
-#        static_url_prefix="static/",
+#        static_url_prefix="/collate/static/",
         xsrf_cookies=False, # @todo Enable
         debug=options.debug,
         ui_modules={ "Token": TokenModule, "Line": LineModule, "Footnotes": FootnotesModule },
