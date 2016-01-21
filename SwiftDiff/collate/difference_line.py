@@ -97,14 +97,12 @@ class DifferenceLine(Line):
         tokens = self.tokens
         base_tokens = self.base_line.tokens
 
-        if len(tokens) > len(base_tokens):
+        while len(self.tokens) > len(self.base_line.tokens):
             empty_token = Token('', self.tokens[-1].index)
             self.base_line.tokens.append(empty_token)
-            # diff_tokens.append(DifferenceToken( empty_token, self.tokens[-1] ))
-        elif len(tokens) < len(base_tokens):
+        while len(self.tokens) < len(self.base_line.tokens):
             empty_token = Token('', self.base_line.tokens[-1].index)
             self.tokens.append(empty_token)
-            # diff_tokens.append(DifferenceToken( self.base_token.tokens[-1], empty_token ))
 
         for token, base_token in zip(self.tokens, self.base_line.tokens):
             diff_tokens.append(DifferenceToken( base_token, token ))

@@ -14,10 +14,16 @@
 	    <table class="table table-striped">
 	      <thead>
 		<th>Witness</th>
-
 	      </thead>
 	      
 	      <tbody>
+		<tr>
+		  <td><a href="#">Base</a></td>
+		  {% for token in lines.witnesses[0]['line'].tokens %}
+		    {% module Token(token.base_token) %}
+		  {% end %}
+		</tr>
+
 		{% for line_values in lines.witnesses %}
 		<tr>
 		  <td><a href="{{ line_values['line'].uri }}"> {{ line_values['id'] }} </a></td>
@@ -43,6 +49,13 @@
 	      </thead>
 	      
 	      <tbody>
+		<tr>
+		  <td><a href="#">Base</a></td>
+		  {% for token in lines.witnesses[0]['line'].tokens %}
+		    {% module Token(token.base_token) %}
+		  {% end %}
+		</tr>
+
 		{% for line_values in lines.witnesses %}
 		<tr>
 		  <td><a href="{{ line_values['line'].uri }}"> {{ line_values['id'] }} </a></td>

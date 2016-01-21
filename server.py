@@ -184,8 +184,8 @@ def collate_async(executor, base_text, witness_texts, poem_id, base_id):
 
     # Attempt to retrieve this from the cache
     doc = cache('collation_cache', key)
-    if doc is None:
-#    if True:
+#    if doc is None:
+    if True:
         # Collate the witnesses in parallel
         diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
         diffs = executor.map( compare, diff_args )
