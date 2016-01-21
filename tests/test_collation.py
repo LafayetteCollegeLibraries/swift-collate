@@ -42,11 +42,18 @@ class TestCollation:
 
         collation = Collation(base_text, diffs, tei_dir_path)
 
+        assert collation.body[0].witnesses[0]['line'].value == "I OFTEN try'd in vain to find"
+        assert collation.body[0].witnesses[0]['line'].base_line.value == "I OFTEN try'd in vain to find"
+
+        assert collation.body[1].witnesses[0]['line'].value == " A Simile for Woman-kind,"
+        assert collation.body[1].witnesses[0]['line'].base_line.value == " A simile for woman-kind,"
     def test_indentations(self, base_text, diff_text):
         diffs = [diff_text]
         tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'xml', '613')
 
         collation = Collation(base_text, diffs, tei_dir_path)
 
+        # assert collation.body[19].witnesses[0]['line'].base_line.value == "|||| Of Xanti's everlasting Tongue,"
+        # assert collation.body[19].witnesses[0]['line'].base_line.tokens[0].value == "||||"
         assert collation.body[19].witnesses[0]['line'].value == "|||| Of Xanti's everlasting Tongue,"
-        assert collation.body[19].witnesses[0]['line'].tokens[0].base_token.value == "||||"
+        assert collation.body[19].witnesses[0]['line'].tokens[0].value == "||||"

@@ -34,8 +34,8 @@ class TestDifferenceText:
 
     def test_indents(self, base_text, variant_text):
         diff_text = DifferenceText(base_text, variant_text, SwiftSentenceTokenizer)
-        assert diff_text.body.lines[19].value == "|||| Of Xanti's everlasting Tongue,"
-        assert diff_text.body.lines[19].other_line.value == " Than lightning's flash, or thunder's roar.Clouds weep, as they do, without pain;"
+        assert diff_text.body.lines[19].base_line.value == "|||| Of Xanti's everlasting Tongue,"
+        assert diff_text.body.lines[19].value == " Than lightning's flash, or thunder's roar.Clouds weep, as they do, without pain;"
 
     def test_line_breaks(self):
         pass

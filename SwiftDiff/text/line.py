@@ -24,6 +24,8 @@ class Line(object):
 
     def tokenize(self):
 
+        self.tokens = []
+
         token_values = self.tokenizer.tokenize(self.value)
         
         line_value = self.value

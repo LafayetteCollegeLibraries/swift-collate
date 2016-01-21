@@ -78,7 +78,7 @@ class LineModule(tornado.web.UIModule):
             gradient_class += ['mild', 'moderate', 'warm', 'hot'][distance - 1]
         classes += ' ' + gradient_class
 
-        line_value = line.other_line.value.encode('utf-8')
+        line_value = line.base_line.value.encode('utf-8')
 
         return self.render_string("line.html", line=line_value, classes=classes)
 
@@ -156,32 +156,6 @@ def cache(collection_name, key, value=None):
 
     return cached
 
-def collate_async(executor, base_text, witness_texts, poem_id, base_id):
-    """Collates a set of texts asynchronously
-
-    :param executor: 
-    :type executor: 
-    """
-
-    key = {'base_text': base_id}
-
-    # Attempt to retrieve this from the cache
-    doc = cache('collation_cache', key)
-#    if doc is None:
-    if True:
-        # Collate the witnesses in parallel
-        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
-        diffs = executor.map( compare, diff_args )
-
-        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
-        result = Collation(base_text, diffs, tei_dir_path)
-        cache('collation_cache', key, result)
-
-    else:
-        result = doc
-
-    return result
-
 def compare(_args, update=False):
     """Compares two <tei:text> Element trees
 
@@ -198,6 +172,33 @@ def compare(_args, update=False):
     diff = DifferenceText(base_text, other_text, SwiftSentenceTokenizer)
     
     return diff
+
+def collate_async(executor, base_text, witness_texts, poem_id, base_id):
+    """Collates a set of texts asynchronously
+
+    :param executor: 
+    :type executor: 
+    """
+
+    key = {'base_text': base_id}
+
+    # Attempt to retrieve this from the cache
+    doc = cache('collation_cache', key)
+    if doc is None:
+#    if True:
+        # Collate the witnesses in parallel
+        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
+        diffs = executor.map( compare, diff_args )
+
+        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
+        result = Collation(base_text, diffs, tei_dir_path)
+        cache('collation_cache', key, result)
+
+    else:
+        result = doc
+
+    return result
+
 
 def resolve(uri, update=False):
     """Resolves resources given a URI

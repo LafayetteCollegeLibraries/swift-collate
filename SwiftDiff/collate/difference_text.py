@@ -76,11 +76,8 @@ class DifferenceText(object):
 
             # Work-arounds for the sorting of lines by index
             try:
-
                 other_headnote_line = other_text.headnotes.lines[headnote_line_index]
-
-                diff_line = DifferenceLine(this_headnote_line, other_headnote_line, tokenizer)
-                
+                diff_line = DifferenceLine(other_headnote_line, this_headnote_line, tokenizer)
                 diff_line.tokenize()
 
                 # Construct the key from the index of the footnote concatenated to the ID for the line, concatenated to the character distance
@@ -101,10 +98,8 @@ class DifferenceText(object):
 
             # Work-arounds for the sorting of lines by index
             try:
-
                 other_footnote_line = other_text.footnotes.lines[footnote_line_index]
-
-                diff_line = DifferenceLine(this_footnote_line, other_footnote_line, tokenizer)
+                diff_line = DifferenceLine(other_footnote_line, this_footnote_line, tokenizer)
                 diff_line.tokenize()
 
                 # Construct the key from the index of the footnote concatenated to the ID for the line, concatenated to the character distance
@@ -128,7 +123,7 @@ class DifferenceText(object):
 
             try:
                 other_line = other_text.body.lines[line_index]
-
+                # diff_line = DifferenceLine(other_line, this_line, tokenizer)
                 diff_line = DifferenceLine(this_line, other_line, tokenizer)
                 diff_line.tokenize()
 

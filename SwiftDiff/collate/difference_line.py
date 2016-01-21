@@ -22,7 +22,7 @@ class DifferenceLine(Line):
 
         return distance
 
-    def align(self):
+    def align_d(self):
         """Aligns two lines of (potentially) unequal length
         """
 
@@ -60,9 +60,34 @@ class DifferenceLine(Line):
                 pass
         pass
 
+    def align(self):
+        """Aligns two lines of (potentially) unequal length
+        """
+
+        for i, token in enumerate(self._tokens):
+            if i < len(self.base_line.tokens) - 1:
+                if self.base_line.tokens[i + 1].value == self._tokens[i].value:
+                    self._tokens.insert( 0, Token('', None) )
+                    self.base_line.tokens.append( Token('', None) )
+
+
+                pass
+            pass
+        pass
+
+        diff_tokens = []
+
+        for token, base_token in zip(self._tokens, self.base_line.tokens):
+            diff_tokens.append(DifferenceToken( base_token, token ))
+
+        self.tokens = diff_tokens
+
     def tokenize(self):
 
         super(DifferenceLine, self).tokenize()
+
+        # This shouldn't need to be invoked
+        # @todo investigate and remove
         self.base_line.tokenize()
 
         diff_tokens = []
@@ -72,24 +97,17 @@ class DifferenceLine(Line):
         tokens = self.tokens
         base_tokens = self.base_line.tokens
 
-        # self.align()
+        if len(tokens) > len(base_tokens):
+            empty_token = Token('', self.tokens[-1].index)
+            self.base_line.tokens.append(empty_token)
+            # diff_tokens.append(DifferenceToken( empty_token, self.tokens[-1] ))
+        elif len(tokens) < len(base_tokens):
+            empty_token = Token('', self.base_line.tokens[-1].index)
+            self.tokens.append(empty_token)
+            # diff_tokens.append(DifferenceToken( self.base_token.tokens[-1], empty_token ))
 
-        for _token, other_token in zip(tokens, base_tokens):
-            diff_tokens.append(DifferenceToken(_token, other_token))
+        for token, base_token in zip(self.tokens, self.base_line.tokens):
+            diff_tokens.append(DifferenceToken( base_token, token ))
 
-        # Padding (not alignment)
-        while len(tokens) > len(base_tokens):
-            _token = tokens[ len(tokens) - 1 ]
-            empty_token = Token('', _token.index)
-            self.base_line.tokens.append( empty_token )
-            diff_tokens.append(DifferenceToken( _token, empty_token ))
-#            diff_tokens.append(DifferenceToken( empty_token, _token ))
-
-        while len(tokens) < len(base_tokens):
-            base_token = base_tokens[ len(base_tokens) - 1 ]
-            empty_token = Token('', base_token.index)
-            self.tokens.append( empty_token )
-            diff_tokens.append(DifferenceToken( empty_token, base_token ))
-#            diff_tokens.append(DifferenceToken( base_token, empty_token ))
-
+        self._tokens = self.tokens
         self.tokens = diff_tokens

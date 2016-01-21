@@ -77,7 +77,7 @@ class Collation:
         self.tei_dir_path = tei_dir_path
 
         for diff in diffs:
-            
+
             # Structure the difference set for titles
             for title_line_key, diff_line in diff.titles.lines.iteritems():
 
