@@ -1,5 +1,33 @@
 {% extends "base.html" %}
 
+{% block poemsDisabled %}
+<div class="container-poems-select" ng-controller="PoemsSelectController">
+<form action="" method="post">
+    <fieldset class="form-group">
+        <legend for="poems-select2">Poem for Collation</legend>
+	<ui-select ng-model="person.selected" theme="select2" title="Choose a person">
+	    <ui-select-match placeholder="Select a poem">{% raw "{{ $select.selected.name }}" %}</ui-select-match>
+	    <ui-select-choices repeat='item in (itemArray | filter: {% raw "$select.search" %}) track by item.id'>
+                <span ng-bind="item.name"></span>
+	    </ui-select-choices>
+	</ui-select>
+    </fieldset>
+</form>
+</div>
+{% end %}
+
+{% block poems %}
+<form action="" method="post">
+    <fieldset class="form-group">
+        <legend for="poems-select2">Poem for Collation</legend>
+	<select id="poems-select2" class="form-control"></select>
+    </fieldset>
+</form>
+
+<script src="{{ static_url('js/index.js') }}"></script>
+<script src="/collate/static/js/index.js"></script>
+{% end %}
+
 {% block content %}
       <!-- Example row of columns -->
       <div class="row">
@@ -20,4 +48,3 @@
         </div>
       </div>
 {% end %}
-

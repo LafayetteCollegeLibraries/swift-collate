@@ -1,38 +1,12 @@
-
-
-
+/**
+ *
+ */
 
 'use strict';
 
 (function($) {
 
     $(document).ready(function(e) {
-
-	    /**
-	     * Widgets for the collation viewing interface
-	     *
-	     */
-	    $('#toggle-line-variation').click(function(e) {
-		    e.preventDefault();
-		    $($(this).data('target')).toggleClass('hidden');
-		    if( $(this).text() == 'Show Line Variation' ) {
-			$(this).text('Hide Line Variation');
-		    } else {
-			$(this).text('Show Line Variation');
-		    }
-		});
-
-	    /**
-	     * Widgets for the collation form interface
-	     *
-	     */
-	    /*
-	    var listGroup = document.getElementById('poem-table-body');
-	    Sortable.create(listGroup, {
-		handle: '.glyphicon-move'
-	    });
-	    */
-
 
 	    /**
 	     * Format the data returned from the server
@@ -84,7 +58,8 @@
 	     *
 	     */
 
-	    /*
+	    var pathname = window.location.pathname;
+
 	    $.get('search/poems', function(response) {
 		    
 		    var data = JSON.parse(response);
@@ -106,6 +81,6 @@
 				// Redirect the user to the appropriate Poem
 				window.location.assign('poems/' + slug);
 			    });
-	    */
+
 	});
 }(jQuery));

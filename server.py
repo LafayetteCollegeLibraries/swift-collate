@@ -12,6 +12,7 @@ import fnmatch
 import pickle
 import logging
 import signal
+import json
 
 import networkx as nx
 from lxml import etree
@@ -20,6 +21,7 @@ import tornado.ioloop
 import tornado.web
 import tornado.escape
 import tornado.httpserver
+import tornado.websocket
 from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from tornado import gen, queues
@@ -49,8 +51,11 @@ port = config.getint('MongoDB', 'port')
 client = MongoClient(host, port)
 db_name = config.get('MongoDB', 'db_name')
 
+# Retrieve the server configuration
+tei_dir_path = config.get('server', 'tei_dir_path')
+
 # Set the global variables for the server
-define("port", default=8889, help="run on the given port", type=int)
+define("port", default=8888, help="run on the given port", type=int)
 define("debug", default=False, help="run in debug mode")
 define("processes", default=max_workers, help="concurrency")
 define("cache", default=True, help="caching", type=bool)
@@ -192,14 +197,15 @@ def collate_async(executor, base_text, witness_texts, poem_id, base_id):
     key = {'base_text': base_id}
 
     # Attempt to retrieve this from the cache
-    doc = cache('collation_cache', key)
+#    doc = cache('collation_cache', key)
 #    if doc is None:
     if True:
         # Collate the witnesses in parallel
         diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
         diffs = executor.map( compare, diff_args )
 
-        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
+        # tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
+        
         result = Collation(base_text, diffs, tei_dir_path)
         cache('collation_cache', key, result)
 
@@ -292,6 +298,104 @@ def doc_uris(poem_id, transcript_ids = []):
 
     uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id + '/', path), transcript_paths)
     return uris
+
+class StreamHandler(tornado.websocket.WebSocketHandler):
+
+    executor = None # Work-around
+
+    # Here, the polling takes place between the thread and server
+    def open(self):
+        pass
+
+    def on_message(self, message):
+
+        # Condition on the message sent
+
+        # The request
+        
+        # 1. Request the document set, parse each document
+        # Return the message "Retrieving the documents"
+
+        # 2. Retrieve the titles
+        # Return the message "Collating the titles"
+        # Iterate
+
+        # Render a set of collated titles
+        # Iterate
+
+        # Tokenize for two lines
+        
+        ####
+        # @todo Refactor and abstract
+        tokenizer_name = 'PunktWordTokenizer'
+
+        # Parse the arguments from the message
+        request = json.loads(message)
+        poem_id = request['poem']
+        base_texts = request['baseText']
+        transcript_ids = request['variants'].keys()
+
+        try:
+            base_id = base_texts.keys().pop()
+        except:
+            raise "Could not identify the base text for the collation"
+
+        self.write_message("Loading the Documents...")
+
+        # Retrieve the URI's and docs for the variants
+        uris = doc_uris(poem_id, transcript_ids)
+
+        # Retrieve the URI and doc for the base text
+        base_uris = doc_uris(poem_id, [base_id])
+
+        self.write_message("Parsing the Documents...")
+
+        base_docs = map(resolve, base_uris)
+        base_ids = map(lambda path: path.split('/')[-1].split('.')[0], base_uris)
+        base_doc = base_docs.pop()
+        base_id = base_ids.pop()
+
+        # Structure the base and witness values
+        base_values = { 'node': base_doc, 'id': base_id }
+
+        ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
+        docs = map(resolve, uris)
+
+        variant_texts = []
+        for node, witness_id in zip(docs, ids):
+
+            # Ensure that Nodes which could not be parsed are logged as server errors
+            # Resolves SPP-529
+            if node is not None:
+                witness_values = { 'node': node, 'id': witness_id }
+                variant_texts.append( witness_values )
+            else:
+                logging.warn("Failed to parse the XML for the transcript %s", witness_id)
+
+        self.write_message("Tokenizing the Documents...")
+
+        # Retrieve the base Text
+        base_text = Text(base_doc, base_id, SwiftSentenceTokenizer)
+        base_text.tokenize()
+
+        # Retrieve the variant Texts
+        witness_texts = map(lambda witness: Text(witness['node'], witness['id'], SwiftSentenceTokenizer), variant_texts)
+
+        self.write_message("Collating the Documents...")
+
+        collation = collate_async(self.executor, base_text, witness_texts, poem_id, base_id)
+
+        # Collate the witnesses in parallel
+#        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
+#        diffs = self.executor.map( compare, diff_args )
+
+#        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
+#        collation = Collation(base_text, diffs, tei_dir_path)
+
+        self.write_message(self.render_string("collate.html", collation=collation))
+
+    def on_close(self):
+        pass
 
 class TranscriptsHandler(tornado.web.StaticFileHandler):
     """The request handler for collation operations
@@ -464,6 +568,66 @@ class PoemsIndexHandler(tornado.web.RequestHandler):
             ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
             slugs = map(lambda transcript_id: '/transcripts/' + transcript_id, ids)
 
+            # poem_text = {'ids': ids, 'uris': slugs}
+            # poem_texts[poem_id] = poem_text
+            poem_texts[poem_id] = ids
+
+        self.render("poems.html", poem_texts=poem_texts)
+
+    def get_broken(self):
+
+        # poem_texts = []
+        poem_texts = {}
+
+        for poem_id in poem_ids():
+
+            # @todo Refactor and abstract
+            uris = doc_uris(poem_id)
+            ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
+            
+            poem_file_paths = {
+                poem_id: { 'uris': uris, 'ids': ids },
+            }
+
+            uris = poem_file_paths[poem_id]['uris']
+            ids = poem_file_paths[poem_id]['ids']
+
+            # Retrieve the stanzas
+            poem_docs = map(resolve, uris)
+
+            witnesses = []
+            for node, witness_id in zip(poem_docs, ids):
+                if node is not None:
+                    witness_values = { 'node': node, 'id': witness_id }
+                    witnesses.append( witness_values )
+
+            # Construct the poem objects
+            # poem_texts.extend(map(lambda poem_text: Text(poem_text['node'], poem_text['id'], SwiftSentenceTokenizer), witnesses))
+            try:
+                # poem_texts[poem_id] = map(lambda poem_text: Text(poem_text['node'], poem_text['id'], SwiftSentenceTokenizer), witnesses)
+                poem_texts[poem_id] = map(lambda poem_text: poem_text['id'], witnesses)
+            except:
+                pass
+
+        self.render("poems.html", poem_id=poem_id, poem_texts=poem_texts)
+
+class PoemsIndexHandlerDepr(tornado.web.RequestHandler):
+    """The request handler for viewing all poems
+
+    """
+
+    def get(self):
+
+        poem_texts = {}
+
+        for poem_id in poem_ids():
+
+            # @todo Refactor and abstract
+            # Retrieve the URI's for a given poem
+            uris = doc_uris(poem_id)
+            ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
+            slugs = map(lambda transcript_id: '/transcripts/' + transcript_id, ids)
+
             # diff_line.uri = '/transcripts/' + self.transcript_path(diff.other_text.id)
 
             poem_text = {'ids': ids, 'uris': slugs}
@@ -514,6 +678,21 @@ class PoemsHandler(tornado.web.RequestHandler):
 
         self.render("poem.html", poem_id=poem_id, poem_texts=poem_texts)
 
+class SearchHandler(tornado.web.RequestHandler):
+    """The request handler for searching for poems
+
+    """
+
+    def get(self):
+        query = self.get_argument("q", "")
+
+        poems = poem_ids()
+        poems = map(lambda poem: poem + '-', poems)
+
+        items = filter(lambda poem: re.search('^' + query, poem), poems)
+
+        self.write(tornado.escape.json_encode({'items': items }))
+
 class MainHandler(tornado.web.RequestHandler):
 
     def get(self):
@@ -544,14 +723,16 @@ def shutdown():
 
 def main():
 
-    tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml')
+    # tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml')
 
     parse_command_line()
     app = tornado.web.Application(
         [
             (r"/", MainHandler),
+            (r"/search/poems/?", SearchHandler),
 #            (r"/auth/login", AuthLoginHandler),
 #            (r"/auth/logout", AuthLogoutHandler),
+            (r"/stream/?", StreamHandler),
 #            (r"/collate/(.+?)/(.+)", CollateHandler),
             (r"/collate/([^/]*)/([^/]*)/?", CollateHandler),
             (r"/collate/([^/]*)/?", CollateHandler),
@@ -578,6 +759,7 @@ def main():
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)
 
+    StreamHandler.executor = ProcessPoolExecutor(max_workers=max_workers)
     CollateHandler.executor = ProcessPoolExecutor(max_workers=max_workers)
     ioloop = tornado.ioloop.IOLoop.current().start()
     # ioloop = tornado.ioloop.IOLoop.instance()

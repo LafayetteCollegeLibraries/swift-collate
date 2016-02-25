@@ -1,13 +1,27 @@
 {% extends "base.html" %}
 
+{% block status %}
+<div ng-controller="StreamController">
+    <!-- Example row of columns -->
+    <div class="row">
+      <div class="col-md-4">
+        <h2>Collation Status</h2>
+	<button id="reset" class="btn btn-primary" data-ng-click="resetCollation($event)">Reset</button>
+	<span id="collation-content" ng-bind-html="status"></span>
+      </div>
+    </div>
+</div>
+{% end %}
+
 {% block content %}
-      <div id="poem-container" class="row">
+      <div id="poem-container" class="row" ng-controller="FormController">
         <div class="col-md-12">
           <h2>A Set of Transcripts for the Poem {{ poem_id }}-</h2>
           <p>A Set of Transcripts for Poem within the Swift Poems Project.</p>
-	  <form action="/collate/collate/{{ poem_id }}" id="collate-form" method="post">
+	  <form action="/collate/collate/{{ poem_id }}" id="collate-form" method="post" >
 	  <!--<form action="/collate/{{ poem_id }}" id="collate-form" method="post">-->
 	    <fieldset>
+
 	      <table class="table table-striped">
 		<thead>
 		  <th></th>
@@ -26,21 +40,18 @@
 		  <tr>
 		    <td class="glyphicon glyphicon-move"></td>
 		    <td>{{ transcript.id }}</td>
-		    <td><input type="checkbox" name="base_text" id="input-base-text-{{ transcript.id }}" class="input-base-text" value="{{ transcript.id }}"></td>
-		    <td><input type="checkbox" name="variants" id="input-variant-{{ transcript.id }}" class="input-variant" value="{{ transcript.id }}"></td>
+		    <td><input type="checkbox" name="base_text" id="input-base-text-{{ transcript.id }}" class="input-base-text" value="{{ transcript.id }}" ng-model="baseText['{{ transcript.id }}']" ></td>
+		    <td><input type="checkbox" name="variants" id="input-variant-{{ transcript.id }}" class="input-variant" value="{{ transcript.id }}" ng-model="variants['{{ transcript.id }}']" ></td>
 		  </tr>
 		  {% end %}
 		</tbody>
 	      </table>
+
+	      <!-- See https://github.com/angular/angular.js/pull/2574 -->
+	      <input type="hidden" name="poem" id="poem" value="{{ poem_id }}" ng-model="poem" ng-init="poem='{{ poem_id }}'"/>
 	    </fieldset>
-	    <input id="input-submit-collate" type="submit" value="Collate" disabled="true">
+	    <input type="submit" id="collate" class="btn btn-primary" data-ng-click="requestCollation($event)" value="Collate" name="collate"/>
           </form>
         </div>
       </div>
-      <script>
-	var listGroup = document.getElementById('poem-table-body');
-	Sortable.create(listGroup, {
-	  handle: '.glyphicon-move'
-	});
-      </script>
 {% end %}

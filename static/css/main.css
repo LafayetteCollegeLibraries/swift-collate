@@ -3,6 +3,10 @@
    Author's custom styles
    ========================================================================== */
 
+.page-header {
+    color: #ffffff;
+}
+
 .display-initial {
     
     font-variant: small-caps;
