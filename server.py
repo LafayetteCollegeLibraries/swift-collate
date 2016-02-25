@@ -255,13 +255,14 @@ def poem_ids():
 
     poem_dir_paths = []
 
-    for f in os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml')):
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', f)
-        if os.path.isdir(path) and len(f) == 3 and f[0] != '.':
+    for f in os.listdir(tei_dir_path):
+        path = os.path.join(tei_dir_path, f)
+
+        if os.path.isdir(path) and f[0] != '.':
 
             poem_dir_paths.append(f)
 
-    return poem_dir_paths
+    return sorted(poem_dir_paths)
 
 def doc_uris(poem_id, transcript_ids = []):
     """Retrieve the transcript file URI's for any given poem
@@ -279,7 +280,7 @@ def doc_uris(poem_id, transcript_ids = []):
     else:
         transcript_paths = []
 
-    for f in os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id + '/')):
+    for f in os.listdir(os.path.join(tei_dir_path, poem_id)):
 
         if fnmatch.fnmatch(f, '*.tei.xml') and f[0] != '.':
             # Filter and sort for only the requested transcripts
@@ -293,10 +294,9 @@ def doc_uris(poem_id, transcript_ids = []):
 
     # Provide a default ordering for the transcripts
     if len(transcript_ids) == 0:
-
         transcript_paths.sort()
 
-    uris = map(lambda path: os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id + '/', path), transcript_paths)
+    uris = map(lambda path: os.path.join(tei_dir_path, poem_id, path), transcript_paths)
     return uris
 
 class StreamHandler(tornado.websocket.WebSocketHandler):
@@ -685,9 +685,7 @@ class SearchHandler(tornado.web.RequestHandler):
 
     def get(self):
         query = self.get_argument("q", "")
-
         poems = poem_ids()
-        poems = map(lambda poem: poem + '-', poems)
 
         items = filter(lambda poem: re.search('^' + query, poem), poems)
 
@@ -723,15 +721,11 @@ def shutdown():
 
 def main():
 
-    # tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml')
-
     parse_command_line()
     app = tornado.web.Application(
         [
             (r"/", MainHandler),
             (r"/search/poems/?", SearchHandler),
-#            (r"/auth/login", AuthLoginHandler),
-#            (r"/auth/logout", AuthLogoutHandler),
             (r"/stream/?", StreamHandler),
 #            (r"/collate/(.+?)/(.+)", CollateHandler),
             (r"/collate/([^/]*)/([^/]*)/?", CollateHandler),
