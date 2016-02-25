@@ -72,11 +72,8 @@
 	    $("#poems-select2").select2({
 		    placeholder: "Select a Poem",
 			allowClear: true,
-			}).on("change", function(event) {
-
+			}).on("select2:select", function(event) {
 				var slug = $(event.target).val();
-				// Work-around due to the directory structure
-				slug = slug.replace(/\-$/, '');
 
 				// Redirect the user to the appropriate Poem
 				window.location.assign('poems/' + slug);
