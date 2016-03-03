@@ -6,7 +6,7 @@
     <div class="row">
       <div class="col-md-4">
         <h2>Collation Status</h2>
-	<button id="reset" class="btn btn-primary" data-ng-click="resetCollation($event)">Reset</button>
+	<button class="btn btn-primary reset" data-ng-click="resetCollation($event)">Reset</button>
 	<span id="collation-content" ng-bind-html="status"></span>
       </div>
     </div>
@@ -21,7 +21,6 @@
 	  <form action="/collate/collate/{{ poem_id }}" id="collate-form" method="post" >
 	  <!--<form action="/collate/{{ poem_id }}" id="collate-form" method="post">-->
 	    <fieldset>
-
 	      <table class="table table-striped">
 		<thead>
 		  <th></th>

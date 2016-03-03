@@ -98,6 +98,30 @@ class LineModule(tornado.web.UIModule):
 
         return self.render_string("line.html", line=line_value, classes=classes)
 
+class LineVariationModule(tornado.web.UIModule):
+    def render(self, line_index, witnesses):
+        return self.render_string("line_variation.html", line_index=line_index, witnesses=witnesses)
+
+class TitlesModule(tornado.web.UIModule):
+    def render(self, collation):
+        return self.render_string("titles.html", collation=collation)
+
+class HeadnotesModule(tornado.web.UIModule):
+    def render(self, collation):
+        return self.render_string("headnotes.html", collation=collation)
+
+class LinesModule(tornado.web.UIModule):
+    def render(self, collation):
+        return self.render_string("lines.html", collation=collation)
+
+class TitleFootnotesModule(tornado.web.UIModule):
+    def render(self, collation):
+        return self.render_string("title_footnotes.html", collation=collation)
+
+class FootnotesModule(tornado.web.UIModule):
+    def render(self, collation):
+        return self.render_string("footnotes.html", collation=collation)
+
 class TokenModule(tornado.web.UIModule):
 
     # @todo Refactor using MV* architecture
@@ -200,6 +224,7 @@ def collate_async(executor, base_text, witness_texts, poem_id, base_id):
 #    doc = cache('collation_cache', key)
 #    if doc is None:
     if True:
+
         # Collate the witnesses in parallel
         diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
         diffs = executor.map( compare, diff_args )
@@ -208,7 +233,7 @@ def collate_async(executor, base_text, witness_texts, poem_id, base_id):
         
         result = Collation(base_text, diffs, tei_dir_path)
         cache('collation_cache', key, result)
-
+        
     else:
         result = doc
 
@@ -248,19 +273,53 @@ def resolve(uri, update=False):
 #    return result
     return Tokenizer.parse_text(uri)
 
+excluded_file_names = [
+    'UNDERDOT',
+    '4DOS.COM',
+    'TILDEOUT',
+    'TILDEGEN',
+    'FILENAME',
+    'NICPRINT',
+    'PRINTTST',
+    'PCOLLBAT',
+    'MODEDUPE',
+    'SRCHMAKE',
+    '4DOS.INI',
+    'SUPERSCR',
+    'RAWP.BAT',
+    'TAIL.EXE',
+    'S926BLNK',
+    'HIDIDDLY',
+    'INVINTRO',
+    'INVGUIDE',
+    'CASEDIDD',
+    'JAMSDIDD'
+]
+
 def poem_ids():
     """Retrieve the ID's for poems within any given collection
 
     """
 
-    poem_dir_paths = []
+    poem_dir_paths = set()
 
     for f in os.listdir(tei_dir_path):
         path = os.path.join(tei_dir_path, f)
 
-        if os.path.isdir(path) and f[0] != '.':
+        if os.path.isdir(path) and f[0] != '.' and len(os.listdir(tei_dir_path)) > 1:
 
-            poem_dir_paths.append(f)
+            poem_dir_paths.add(f)
+
+#    for root, dirnames, filenames in os.walk('/var/lib/spp/master'):
+#        for filename in filter( lambda fname: len(fname) == 8 and fname not in excluded_file_names, filenames ):
+
+#            poem_id = filename[0:4]
+#            poem_dir = os.path.join(tei_dir_path, poem_id)
+
+#            if os.path.isdir( poem_dir ) and len(os.listdir(poem_dir)) > 1:
+
+#                poem_dir_paths.add(poem_id)
+
 
     return sorted(poem_dir_paths)
 
@@ -551,90 +610,6 @@ class CollateHandler(tornado.web.RequestHandler):
 
         self.render("collate.html", collation=collation)
 
-class PoemsIndexHandler(tornado.web.RequestHandler):
-    """The request handler for viewing all poems
-
-    """
-
-    def get(self):
-
-        poem_texts = {}
-
-        for poem_id in poem_ids():
-
-            # @todo Refactor and abstract
-            # Retrieve the URI's for a given poem
-            uris = doc_uris(poem_id)
-            ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
-            slugs = map(lambda transcript_id: '/transcripts/' + transcript_id, ids)
-
-            # poem_text = {'ids': ids, 'uris': slugs}
-            # poem_texts[poem_id] = poem_text
-            poem_texts[poem_id] = ids
-
-        self.render("poems.html", poem_texts=poem_texts)
-
-    def get_broken(self):
-
-        # poem_texts = []
-        poem_texts = {}
-
-        for poem_id in poem_ids():
-
-            # @todo Refactor and abstract
-            uris = doc_uris(poem_id)
-            ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
-            
-            poem_file_paths = {
-                poem_id: { 'uris': uris, 'ids': ids },
-            }
-
-            uris = poem_file_paths[poem_id]['uris']
-            ids = poem_file_paths[poem_id]['ids']
-
-            # Retrieve the stanzas
-            poem_docs = map(resolve, uris)
-
-            witnesses = []
-            for node, witness_id in zip(poem_docs, ids):
-                if node is not None:
-                    witness_values = { 'node': node, 'id': witness_id }
-                    witnesses.append( witness_values )
-
-            # Construct the poem objects
-            # poem_texts.extend(map(lambda poem_text: Text(poem_text['node'], poem_text['id'], SwiftSentenceTokenizer), witnesses))
-            try:
-                # poem_texts[poem_id] = map(lambda poem_text: Text(poem_text['node'], poem_text['id'], SwiftSentenceTokenizer), witnesses)
-                poem_texts[poem_id] = map(lambda poem_text: poem_text['id'], witnesses)
-            except:
-                pass
-
-        self.render("poems.html", poem_id=poem_id, poem_texts=poem_texts)
-
-class PoemsIndexHandlerDepr(tornado.web.RequestHandler):
-    """The request handler for viewing all poems
-
-    """
-
-    def get(self):
-
-        poem_texts = {}
-
-        for poem_id in poem_ids():
-
-            # @todo Refactor and abstract
-            # Retrieve the URI's for a given poem
-            uris = doc_uris(poem_id)
-            ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
-            slugs = map(lambda transcript_id: '/transcripts/' + transcript_id, ids)
-
-            # diff_line.uri = '/transcripts/' + self.transcript_path(diff.other_text.id)
-
-            poem_text = {'ids': ids, 'uris': slugs}
-            poem_texts[poem_id] = poem_text
-
-        self.render("poems.html", poem_texts=poem_texts)
-
 class PoemsHandler(tornado.web.RequestHandler):
     """The request handler for viewing poem variants
 
@@ -728,10 +703,9 @@ def main():
             (r"/search/poems/?", SearchHandler),
             (r"/stream/?", StreamHandler),
 #            (r"/collate/(.+?)/(.+)", CollateHandler),
-            (r"/collate/([^/]*)/([^/]*)/?", CollateHandler),
-            (r"/collate/([^/]*)/?", CollateHandler),
+#            (r"/collate/([^/]*)/([^/]*)/?", CollateHandler),
+#            (r"/collate/([^/]*)/?", CollateHandler),
             (r"/poems/([^/]+)/?", PoemsHandler),
-            (r"/poems/?", PoemsIndexHandler),
             (r"/transcripts/([^/]+)/?", TranscriptsHandler, { 'path': tei_dir_path }),
         ],
         cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
@@ -741,7 +715,15 @@ def main():
 #        static_url_prefix="/collate/static/",
         xsrf_cookies=False, # @todo Enable
         debug=options.debug,
-        ui_modules={ "Token": TokenModule, "Line": LineModule, "Footnotes": FootnotesModule },
+        ui_modules={ "Token": TokenModule,
+                     "Line": LineModule,
+                     "Titles": TitlesModule,
+                     "Headnotes": HeadnotesModule,
+                     "Lines": LinesModule,
+                     "TitleFootnotes": TitleFootnotesModule,
+                     "Footnotes": FootnotesModule,
+                     "LineVariation": LineVariationModule,
+                     "Footnotes": FootnotesModule },
         )
 
     # https://gist.github.com/mywaiting/4643396

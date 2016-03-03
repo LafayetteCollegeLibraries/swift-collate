@@ -72,12 +72,21 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 		    $scope.Stream.data = message.data;
 		    $scope.status = $sce.trustAsHtml($scope.Stream.data);
 		});
+	    // @todo Refactor using a Promise instance
 	    /*
 	    Stream.listen().then(function(message) {
 		    $scope.Stream.data = message.data;
 		    $scope.status = $sce.trustAsHtml($scope.Stream.data);
 		});
 	    */
+
+	    // @todo Deduplicate
+	    $scope.requestCollation = function(event) {
+		event.preventDefault();
+
+		var params = { poem: $scope.poem, baseText: $scope.baseText, variants: $scope.variants };
+		Stream.send(params);
+	    };
 	})
     .controller('FormController', function ($scope, Stream) {
 
@@ -94,5 +103,9 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 
 		var params = { poem: $scope.poem, baseText: $scope.baseText, variants: $scope.variants };
 		Stream.send(params);
+	    };
+	    // @todo Deduplicate
+	    $scope.resetCollation = function(event) {
+		$("#collation-content").empty();
 	    };
 	});

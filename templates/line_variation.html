@@ -1,0 +1,26 @@
+	    <div><a class="btn btn-default" href="#" role="button" id="toggle-line-variation" data-target="#container-line-variation">Show Line Variation</a></div>
+	    <div id="container-line-variation" class="hidden">
+	      <h3>Line Variation</h3>
+	      <table class="table table-striped table-line-variation" id="table-line-variation">
+		<thead>
+		  <th>Witness</th>
+		  <th>Line Number</th>
+		  <th>Line Text</th>
+		</thead>
+		
+		<tbody>
+		  <tr>
+		    <td class="line-row-id"> Base </td>
+		    <td class="line-row-number"> {{ line_index }} </td>
+		    <td class="">{{ witnesses[0]['line'] }}</td>
+		  </tr>
+		  {% for line_values in witnesses %}
+		  <tr>
+		    <td class="line-row-id"> {{ line_values['id'] }} </td>
+		    <td class="line-row-number"> {{ line_index }} </td>
+		    {% module Line(line_values['line']) %}
+		  </tr>
+		  {% end %}
+		</tbody>
+	      </table>
+	    </div>

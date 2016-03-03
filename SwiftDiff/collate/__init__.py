@@ -61,6 +61,8 @@ class Collation:
 
     def __init__(self, base_text, diffs, tei_dir_path):
 
+        self.base_id = base_text.id
+
         self.titles = {}
         self.headnotes = {}
         self.body = {}

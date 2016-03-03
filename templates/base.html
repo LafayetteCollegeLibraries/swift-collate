@@ -87,28 +87,30 @@
 		<li><a href="/collate">View Poems</a></li>
 		<li><a href="#">About</a></li>
 	      </ul>
+
             </div><!--/.navbar-collapse -->
 	  </div>
 	  <div class="col-xs-1">
-            <a class="navbar-brand pull-right" href="//github.com/LafayetteCollegeLibraries/swift-collate"><img src="/collate/static/github-icon.png" /></a>
+            <!-- <a class="navbar-brand pull-right" href="//github.com/LafayetteCollegeLibraries/swift-collate"><img src="/collate/static/github-icon.png" /></a> -->
+	    <a href="#" id="reset-scroll" class="glyphicon glyphicon-chevron-up pull-right"></a>
 	  </div>
 	</div><!--/.row -->
       </div>
     </nav>
     
-    <section id="collation">
-      <div class="container-fluid">
-        {% block status %}
-        {% end %}
-      </div>
-    </section>
-
     <section id="variants">
       <div class="container-fluid">
         {% block content %}
         {% end %}
       </div> <!-- /container -->
     </section> <!-- /#variants -->
+
+    <section id="collation">
+      <div class="container-fluid">
+        {% block status %}
+        {% end %}
+      </div>
+    </section>
 
     <section id="poems">
       <div class="container-fluid">
@@ -119,7 +121,9 @@
 
     <footer>
       <nav class="navbar navbar-inverse" role="navigation">
-	<span>Digital Scholarship Services</span>
+	<ul>
+	  <li><span>Digital Scholarship Services</span></li>
+	</ul>
       </nav>
     </footer>
 

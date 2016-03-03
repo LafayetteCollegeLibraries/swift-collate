@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+      <div id="poem-container" class="row">
+        <div class="col-md-12">
+	  {% for poem_id in poem_texts.keys() %}
+          <h2>{{ poem_id }}-</h2>
+	  <a href="/collate/poems/{{ poem_id }}"><h3>Collate Poem</h3></a>
+	  <form action="/collate/collate/{{ poem_id }}" id="collate-form" method="post">
+	    <fieldset>
+	      <table class="table table-striped">
+		<thead>
+		  <th>Encoded Transcript (TEI)</th>
+		  <th>Transcript ID</th>
+		</thead>
+		<tbody id="poem-table-body-{{ poem_id }}">
+		  {% for transcript, uri in zip(poem_texts[poem_id]['ids'], poem_texts[poem_id]['uris']) %}
+		  <tr>
+		    <td class=""><a href="{{ uri }}">View</td>
+		    <td>{{ transcript }}</td>
+		  </tr>
+		  {% end %}
+		</tbody>
+	      </table>
+	    </fieldset>
+	    <div>
+	    </div>
+          </form>
+	  {% end %}
+        </div>
+      </div>
+
+      <div id="poem-container" class="row">
+        <div class="col-md-12">
+          <h2>A Set of Transcripts for the Poem {{ poem_id }}-</h2>
+          <p>A Set of Transcripts for Poem within the Swift Poems Project.</p>
+	  <form action="/collate/collate/{{ poem_id }}" id="collate-form" method="post">
+	  <!--<form action="/collate/{{ poem_id }}" id="collate-form" method="post">-->
+	    <fieldset>
+	      <table class="table table-striped">
+		<thead>
+		  <th></th>
+		  <th>Transcript ID</th>
+		  <th>Base Text</th>
+		  <th>Variant</th>
+		</thead>
+		<tbody id="poem-table-body">
+		  <tr>
+		    <td></td>
+		    <td></td>
+		    <td><input type="button" id="input-base-text-reset" value="Unset the Base Text"></td>
+		    <td><input type="button" id="input-variant-all" value="Select All Transcripts"></td>
+		  </tr>
+		  {% for transcript in poem_texts %}
+		  <tr>
+		    <td class="glyphicon glyphicon-move"></td>
+		    <td>{{ transcript.id }}</td>
+		    <td><input type="checkbox" name="base_text" id="input-base-text-{{ transcript.id }}" class="input-base-text" value="{{ transcript.id }}"></td>
+		    <td><input type="checkbox" name="variants" id="input-variant-{{ transcript.id }}" class="input-variant" value="{{ transcript.id }}"></td>
+		  </tr>
+		  {% end %}
+		</tbody>
+	      </table>
+	    </fieldset>
+	    <input id="input-submit-collate" type="submit" value="Collate" disabled="true">
+          </form>
+        </div>
+      </div>
+      <script>
+	var listGroup = document.getElementById('poem-table-body');
+	Sortable.create(listGroup, {
+	  handle: '.glyphicon-move'
+	});
+      </script>
+
+{% end %}

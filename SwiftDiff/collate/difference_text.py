@@ -6,6 +6,7 @@ class DifferenceText(object):
 
     def __init__(self, base_text, other_text, tokenizer):
 
+        self.base_text = base_text
         self.other_text = other_text
         self.tokenizer = tokenizer
 

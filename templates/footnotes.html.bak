@@ -1,0 +1,25 @@
+
+	  <h2>Footnote {{ index }}</h2>
+
+	  <h3>Footnote Tokens</h3>
+	  <table class="table table-striped">
+	    <thead>
+
+	      <th>Witness</th>
+	    </thead>
+
+	    <tbody>
+
+	      {% for text_id, line_values in footnotes.witnesses.iteritems() %}
+	      <tr>
+		<th scope="row"> {{ text_id }} </th>
+
+		{% for token in line_values['line'].tokens %}
+		<th scope="row"> {{ token.value }} </th>
+		{% end %}
+
+	      </tr>
+	      {% end %}
+
+	    </tbody>
+	  </table>

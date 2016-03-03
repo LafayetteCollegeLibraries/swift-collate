@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+      <!-- Example row of columns -->
+      <div id="collation-container" class="row">
+        <div class="col-md-12">
+          <h2>Collation of Witnesses</h2>
+          <p>Witnesses are organized by line, with each line being further tokenized using <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.85.5017&rep=rep1&type=pdf">Kiss, Tibor, and Strunk's Punkt tokenization algorithm</a>.</p>
+
+	  {% for row,values in collation['lines'].iteritems() %}
+
+	  {% if 'line' in values %}
+
+	  {% if isinstance(row, str) and ('Footnote' in row or 'Headnote' in row ) %}
+
+	  <h2>{{ row.replace('Line ', '') }}</h2>
+	  {% else %}
+
+	  <h2>Line {{ row }}</h2>
+	  {% end %}
+
+	  {% if 'ngram' in values %}
+	  <h3>Line Tokens</h3>
+	  <table class="table table-striped">
+	    <thead>
+
+	      <th>Witness</th>
+
+	      <!-- Iterate through all of the tokens -->
+	      {% for i, token in enumerate(values['ngram'][values['ngram'].keys()[0]]) %}
+
+	      <th>Token {{ i }}</th>
+	      {% end %}
+	    </thead>
+
+	    <tbody>
+
+	      {% for line_ngram_values in values['ngrams_sorted'] %}
+
+	      <tr>
+		<th scope="row">{{ line_ngram_values['witness'] }}</th>
+
+		{% for line_ngram_index, line_ngram in enumerate(line_ngram_values['line_ngrams']) %}
+
+		  {% if line_ngram_index in values['ngrams_distances'][line_ngram_values['witness']] %}
+
+		    {% module Token(line_ngram, line_ngram_index, values['ngrams_distances'][line_ngram_values['witness']][line_ngram_index] ) %}
+		  {% else %}
+
+		    {% module Token(line_ngram, line_ngram_index, None) %}
+		  {% end %}
+		{% end %}
+	      </tr>
+	      {% end %}
+	    </tbody>
+	  </table>
+	  {% end %}
+
+	  <h3>Line Variation</h3>
+	  <table class="table table-striped">
+	    <thead>
+	      <th>Line Number</th>
+	      <th>Witness</th>
+	      <th>Line Text</th>
+
+	    </thead>
+
+	    <tbody>
+	      {% for line_index, data in enumerate(values['line']) %}
+	      <tr>
+		<th scope="row">{{ row }}</th>
+		<td>{{ escape(data['witness']) }}</td>
+		
+		{% module Line(escape(data['text']), line_index, data['distance']) %}
+
+
+	      </tr>
+	      {% end %}
+	    </tbody>
+	  </table>
+
+	  {% end %}
+
+	  {% end %}
+
+        </div>
+      </div>
+{% end %}
