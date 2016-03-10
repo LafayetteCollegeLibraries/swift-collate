@@ -310,18 +310,21 @@ def poem_ids():
 
             poem_dir_paths.add(f)
 
-#    for root, dirnames, filenames in os.walk('/var/lib/spp/master'):
-#        for filename in filter( lambda fname: len(fname) == 8 and fname not in excluded_file_names, filenames ):
-
-#            poem_id = filename[0:4]
-#            poem_dir = os.path.join(tei_dir_path, poem_id)
-
-#            if os.path.isdir( poem_dir ) and len(os.listdir(poem_dir)) > 1:
-
-#                poem_dir_paths.add(poem_id)
-
-
     return sorted(poem_dir_paths)
+
+def transcript_ids(poem_id):
+    """Retrieve all transcripts ID's for any given poem
+
+    """
+
+    transcript_paths = []
+
+    for f in os.listdir(os.path.join(tei_dir_path, poem_id)):
+        if fnmatch.fnmatch(f, '*.tei.xml') and f[0] != '.':
+            transcript_id = re.sub(r'\.tei\.xml$', '', f)
+            transcript_paths.append(transcript_id)
+
+    return sorted(transcript_paths)
 
 def doc_uris(poem_id, transcript_ids = []):
     """Retrieve the transcript file URI's for any given poem
@@ -358,6 +361,16 @@ def doc_uris(poem_id, transcript_ids = []):
     uris = map(lambda path: os.path.join(tei_dir_path, poem_id, path), transcript_paths)
     return uris
 
+
+tokenizer_modules = {'SwiftSentenceTokenizer': 'SwiftDiff.tokenize',
+                     'PunktSentenceTokenizer': 'SwiftDiff.tokenize',
+                     'TreebankWordTokenizer': 'nltk.tokenize.treebank',
+                     'StanfordTokenizer': 'nltk.tokenize.stanford'}
+
+def tokenizer_module(tokenizer_class_name):
+
+    return tokenizer_modules[tokenizer_class_name]
+
 class StreamHandler(tornado.websocket.WebSocketHandler):
 
     executor = None # Work-around
@@ -393,11 +406,34 @@ class StreamHandler(tornado.websocket.WebSocketHandler):
         poem_id = request['poem']
         base_texts = request['baseText']
         transcript_ids = request['variants'].keys()
+        tokenizer_class_name = request['tokenizer']
+
+        module_name = tokenizer_module(tokenizer_class_name)
+        m = importlib.import_module(module_name)
+        tokenizer = getattr(m, tokenizer_class_name)
 
         try:
-            base_id = base_texts.keys().pop()
+            module_name = tokenizer_module(tokenizer_class_name)
+            m = importlib.import_module(module_name)
+            tokenizer_class = getattr(m, tokenizer_class_name)
         except:
-            raise "Could not identify the base text for the collation"
+            raise "Could not load the selected tokenizer"
+
+        # If this is the Punkt tokenizer, it must first be trained
+#        if tokenizer_class_name == 'PunktSentenceTokenizer':
+
+#            tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+
+#            try:
+#                tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+#            except:
+#                raise "Could not train the selected tokenizer"
+#        else:
+
+#            tokenizer = tokenizer_class()
+        tokenizer = tokenizer_class
+
+        base_id = base_texts
 
         self.write_message("Loading the Documents...")
 
@@ -434,11 +470,11 @@ class StreamHandler(tornado.websocket.WebSocketHandler):
         self.write_message("Tokenizing the Documents...")
 
         # Retrieve the base Text
-        base_text = Text(base_doc, base_id, SwiftSentenceTokenizer)
+        base_text = Text(base_doc, base_id, tokenizer)
         base_text.tokenize()
 
         # Retrieve the variant Texts
-        witness_texts = map(lambda witness: Text(witness['node'], witness['id'], SwiftSentenceTokenizer), variant_texts)
+        witness_texts = map(lambda witness: Text(witness['node'], witness['id'], tokenizer), variant_texts)
 
         self.write_message("Collating the Documents...")
 
@@ -653,7 +689,20 @@ class PoemsHandler(tornado.web.RequestHandler):
 
         self.render("poem.html", poem_id=poem_id, poem_texts=poem_texts)
 
-class SearchHandler(tornado.web.RequestHandler):
+class TranscriptSearchHandler(tornado.web.RequestHandler):
+    """The request handler for searching for transcripts
+
+    """
+
+    def get(self, poem_id):
+        query = self.get_argument("q", "")
+        poems = transcript_ids(poem_id)
+
+        items = filter(lambda poem: re.search('^' + query, poem), poems)
+
+        self.write(tornado.escape.json_encode({'items': items }))
+
+class PoemSearchHandler(tornado.web.RequestHandler):
     """The request handler for searching for poems
 
     """
@@ -700,7 +749,8 @@ def main():
     app = tornado.web.Application(
         [
             (r"/", MainHandler),
-            (r"/search/poems/?", SearchHandler),
+            (r"/search/poems/?", PoemSearchHandler),
+            (r"/search/transcripts/([^/]+)/?", TranscriptSearchHandler),
             (r"/stream/?", StreamHandler),
 #            (r"/collate/(.+?)/(.+)", CollateHandler),
 #            (r"/collate/([^/]*)/([^/]*)/?", CollateHandler),

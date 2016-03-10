@@ -13,6 +13,7 @@ import urllib
 from difflib import ndiff
 
 from swift_sentence_tokenizer import SwiftSentenceTokenizer
+from punkt_sentence_tokenizer import PunktSentenceTokenizer
 
 class Tokenizer:
 

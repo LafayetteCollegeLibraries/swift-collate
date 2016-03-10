@@ -1,19 +1,6 @@
 {% extends "base.html" %}
 
-{% block status %}
-<div ng-controller="StreamController">
-    <!-- Example row of columns -->
-    <div class="row">
-      <div class="col-md-4">
-        <h2>Collation Status</h2>
-	<button class="btn btn-primary reset" data-ng-click="resetCollation($event)">Reset</button>
-	<span id="collation-content" ng-bind-html="status"></span>
-      </div>
-    </div>
-</div>
-{% end %}
-
-{% block content %}
+{% block poem %}
       <div id="poem-container" class="row" ng-controller="FormController">
         <div class="col-md-12">
           <h2>A Set of Transcripts for the Poem {{ poem_id }}</h2>
@@ -53,4 +40,77 @@
           </form>
         </div>
       </div>
+{% end %}
+
+{% block collation %}
+<div>
+
+
+      <div id="poem-container" class="row" ng-controller="FormController">
+        <div class="col-xs-12">
+          <h2>Poem {{ poem_id }}</h2>
+	  <form action="/collate/collate/{{ poem_id }}" id="collate-form" method="post" >
+	    <!--<form action="/collate/{{ poem_id }}" id="collate-form" method="post">-->
+
+	    <fieldset class="form-group">
+              <legend for="base-text-select2">Base Transcript</legend>
+	      <select id="base-text-select2" class="form-control" name="base_text" ng-model="baseText"></select>
+	    </fieldset>
+	    <script src="{{ static_url('js/poem.js') }}"></script>
+	    <script src="/collate/static/js/poem.js"></script>
+
+            <legend for="variant-fields">Variant Transcripts</legend>
+	    <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#variant-fields" aria-expanded="false" aria-controls="">Select Variants</button>
+
+	    <fieldset id="variant-fields" class="collapse">
+
+	      <table id="poem-table" class="table table-striped">
+		<thead>
+		  <th></th>
+		  <th>Transcript ID</th>
+		  <th></th>
+		</thead>
+
+		<tbody id="poem-table-body">
+		  {% for transcript in poem_texts %}
+		  <tr>
+		    <td><input type="checkbox" name="variants" id="input-variant-{{ transcript.id }}" class="input-variant" value="{{ transcript.id }}" ng-model="variants['{{ transcript.id }}']" ></td>
+
+		    <td>{{ transcript.id }}</td>
+		    <td class="glyphicon glyphicon-move"></td>
+
+		  </tr>
+		  {% end %}
+		</tbody>
+	      </table>
+
+
+
+	      <!-- See https://github.com/angular/angular.js/pull/2574 -->
+	      <input type="hidden" name="poem" id="poem" value="{{ poem_id }}" ng-model="poem" ng-init="poem='{{ poem_id }}'"/>
+	    </fieldset>
+
+            <legend for="tokenizer">Tokenizer</legend>
+	    <select id="tokenizer" class="form-control" name="tokenizer" ng-model="tokenizer">
+	      <option value="SwiftSentenceTokenizer" selected="true">Swift Sentence Tokenizer</option> 
+	      <option value="PunktSentenceTokenizer">Punkt Sentence Tokenizer</option>
+	      <option value="TreebankWordTokenizer">Penn Treebank Tokenizer</option>
+	    </select>
+
+            <legend for="collation-content">Collation Output</legend>
+	    <div ng-controller="StreamController">
+	      <div id="collation-content" class="well" ng-bind-html="status">
+		<span id="collation-content" ng-bind-html="status"></span>
+	      </div>
+	    </div>
+
+	    <div class="btn-group" role="group" aria-label="">
+	      <input type="submit" id="collate" class="btn btn-primary" data-ng-click="requestCollation($event)" value="Collate" name="collate"/>
+	      <input type="reset" class="btn btn-danger reset" data-ng-click="resetCollation($event)" value="Reset"/>
+	    </div>
+
+          </form>
+        </div>
+      </div>
+</div>
 {% end %}

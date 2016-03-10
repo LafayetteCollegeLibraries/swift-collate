@@ -12,7 +12,7 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	    var dataStream = $websocket('ws://santorini0.stage.lafayette.edu/collate/stream');
 	    //var dataStream = $websocket('wss://santorini0.stage.lafayette.edu/collate/stream');
 
-	    var data = "<span>No texts selected for collation</span>";
+	    var data = "<span>No transcripts selected for collation</span>";
 
 	    /*
 	    var methods = {
@@ -84,7 +84,10 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	    $scope.requestCollation = function(event) {
 		event.preventDefault();
 
-		var params = { poem: $scope.poem, baseText: $scope.baseText, variants: $scope.variants };
+		var params = { poem: $scope.poem,
+			       baseText: $scope.baseText,
+			       variants: $scope.variants,
+			       tokenizer: $scope.tokenizer };
 		Stream.send(params);
 	    };
 	})
@@ -95,13 +98,17 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	     *
 	     */
 	    $scope.poem = null;
-	    $scope.baseText = {};
+	    $scope.baseText = null;
 	    $scope.variants = {};
+	    $scope.tokenizer = null;
 	    
 	    $scope.requestCollation = function(event) {
 		event.preventDefault();
 
-		var params = { poem: $scope.poem, baseText: $scope.baseText, variants: $scope.variants };
+		var params = { poem: $scope.poem,
+			       baseText: $scope.baseText,
+			       variants: $scope.variants,
+			       tokenizer: $scope.tokenizer };
 		Stream.send(params);
 	    };
 	    // @todo Deduplicate

@@ -1,8 +1,58 @@
+/**
+ * Styling rules for the app. interface
+ * @todo Restructure for Bootstrap/Sass
+ * @author griffinj@lafayette.edu
+ */
 
-/* ==========================================================================
-   Author's custom styles
-   ========================================================================== */
+/*
+ * Header
+ */
+#header-container {
+    background-color: #ffffff;
+    background-image: url("../img/swift_header.png");
+    width: 100%;
+}
 
+#header-container h1, #header-container h2 {
+    clear: both;
+    float: right;
+}
+
+/**
+ * Navbar
+ */
+#navbar-menu {
+    height: 64px;
+}
+
+#navbar-menu li {
+    padding: 2px;
+}
+
+#navbar-menu li a {
+    color: #ffffff;
+    font-size: x-large;
+    height: 64px;
+    text-align: center;
+}
+
+#menu-nav-reset {
+    padding-top: 8px;
+}
+
+/**
+ * Footer
+ */
+#footer-navbar {
+    margin-bottom: 0;
+    text-align: center;
+}
+
+
+
+/**
+ * Body
+ */
 .page-header {
     color: #ffffff;
 }
