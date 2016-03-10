@@ -84,10 +84,23 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	    $scope.requestCollation = function(event) {
 		event.preventDefault();
 
+		/*
 		var params = { poem: $scope.poem,
 			       baseText: $scope.baseText,
 			       variants: $scope.variants,
 			       tokenizer: $scope.tokenizer };
+		*/
+		// Work-around
+		var variants = $scope.variants;
+		if( !$('#variant-fields').hasClass('in') ) {
+		    variants = $scope.allVariants;
+		}
+
+		var params = { poem: $scope.poem,
+			       baseText: $scope.baseText,
+			       variants: variants,
+			       tokenizer: $scope.tokenizer };
+
 		Stream.send(params);
 	    };
 	})
@@ -100,14 +113,41 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	    $scope.poem = null;
 	    $scope.baseText = null;
 	    $scope.variants = {};
+
+	    // By default, the variants should be populated
+	    // @todo Populate this from a server endpoint
+	    var variants = {};
+
+	    $('input[type="checkbox"][name="variants"]').each(function(i) {
+		    variants[$(this).val()] = $(this).val();
+		    //$(this).prop('checked', true);
+		});
+
+	    $scope.allVariants = variants;
+
+	    // Work-around
+
 	    $scope.tokenizer = null;
 	    
 	    $scope.requestCollation = function(event) {
 		event.preventDefault();
 
+		/*
 		var params = { poem: $scope.poem,
 			       baseText: $scope.baseText,
 			       variants: $scope.variants,
+			       tokenizer: $scope.tokenizer };
+		*/
+
+		// Work-around
+		var variants = $scope.variants;
+		if( !$('#variant-fields').hasClass('in') ) {
+		    variants = $scope.allVariants;
+		}
+
+		var params = { poem: $scope.poem,
+			       baseText: $scope.baseText,
+			       variants: variants,
 			       tokenizer: $scope.tokenizer };
 		Stream.send(params);
 	    };

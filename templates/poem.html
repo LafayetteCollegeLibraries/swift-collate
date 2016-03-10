@@ -74,7 +74,7 @@
 		<tbody id="poem-table-body">
 		  {% for transcript in poem_texts %}
 		  <tr>
-		    <td><input type="checkbox" name="variants" id="input-variant-{{ transcript.id }}" class="input-variant" value="{{ transcript.id }}" ng-model="variants['{{ transcript.id }}']" ></td>
+		    <td><input type="checkbox" name="variants" id="input-variant-{{ transcript.id }}" class="input-variant" value="{{ transcript.id }}" ng-model="variants['{{ transcript.id }}']"></td>
 
 		    <td>{{ transcript.id }}</td>
 		    <td class="glyphicon glyphicon-move"></td>
