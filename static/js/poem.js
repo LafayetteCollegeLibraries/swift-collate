@@ -49,6 +49,17 @@
 				var slug = $(event.target).val();
 
 				// Find the checkbox field for this text as a variant, deselect it, and disable it
+				var $checkbox = $('input[type="checkbox"][value="' + slug + '"]');
+				$checkbox.prop('disabled', true);
+				$checkbox.prop('checked', false);
+
+				// Avoid having to traverse the DOM
+				var $previous = $(document).data('base-text-select2');
+				if($previous) {
+				    $previous.prop('disabled', false);
+				}
+
+				$(document).data('base-text-select2', $checkbox);
 			    });
 
 	});
