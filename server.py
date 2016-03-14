@@ -206,12 +206,12 @@ def compare(_args, update=False):
 
     # Attempt to retrieve the results from the cache
     # doc = cache_db['diff_texts'].find_one({'uri': uri})
-    
+
     diff = DifferenceText(base_text, other_text, SwiftSentenceTokenizer)
     
     return diff
 
-def collate_async(executor, base_text, witness_texts, poem_id, base_id):
+def collate_async(executor, base_text, witness_texts, poem_id, base_id, stream, stream_output):
     """Collates a set of texts asynchronously
 
     :param executor: 
@@ -226,11 +226,23 @@ def collate_async(executor, base_text, witness_texts, poem_id, base_id):
     if True:
 
         # Collate the witnesses in parallel
+        # diff_args = map( lambda witness_text: (base_text, witness_text, stream), witness_texts )
         diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
+        
+        # Log to stream
+        # @todo Open a pipe to the processes and block until the stream is updated?
+        for base_text, other_text in diff_args:
+            stream_output += "<div>Comparing " + other_text.id + " to " + base_text.id + "...</div>"
+            stream.write_message(stream_output)
+
         diffs = executor.map( compare, diff_args )
 
+        # Log to stream
+        for base_text, other_text in diff_args:
+            stream_output += "<div>Collating " + other_text.id + "...</div>"
+            stream.write_message(stream_output)
+
         # tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
-        
         result = Collation(base_text, diffs, tei_dir_path)
         cache('collation_cache', key, result)
         
@@ -398,13 +410,13 @@ class StreamHandler(tornado.websocket.WebSocketHandler):
         # Tokenize for two lines
         
         ####
-        # @todo Refactor and abstract
-        tokenizer_name = 'PunktWordTokenizer'
-
         # Parse the arguments from the message
         request = json.loads(message)
+
         poem_id = request['poem']
-        base_texts = request['baseText']
+        # base_texts = request['baseText']
+        base_texts = request['baseText'].keys()
+
         transcript_ids = request['variants'].keys()
         tokenizer_class_name = request['tokenizer']
 
@@ -433,9 +445,9 @@ class StreamHandler(tornado.websocket.WebSocketHandler):
 #            tokenizer = tokenizer_class()
         tokenizer = tokenizer_class
 
-        base_id = base_texts
+        base_id = base_texts.pop()
 
-        self.write_message("Loading the Documents...")
+        self.write_message("<div>Loading the Documents...</div>")
 
         # Retrieve the URI's and docs for the variants
         uris = doc_uris(poem_id, transcript_ids)
@@ -443,51 +455,73 @@ class StreamHandler(tornado.websocket.WebSocketHandler):
         # Retrieve the URI and doc for the base text
         base_uris = doc_uris(poem_id, [base_id])
 
-        self.write_message("Parsing the Documents...")
+        # Parse the documents
+        self.output = "<div>Parsing the Documents...</div>"
+        self.write_message(self.output)
 
-        base_docs = map(resolve, base_uris)
-        base_ids = map(lambda path: path.split('/')[-1].split('.')[0], base_uris)
-        base_doc = base_docs.pop()
-        base_id = base_ids.pop()
+        try:
+            base_docs = map(resolve, base_uris)
+            base_ids = map(lambda path: path.split('/')[-1].split('.')[0], base_uris)
+            base_doc = base_docs.pop()
+            base_id = base_ids.pop()
 
-        # Structure the base and witness values
-        base_values = { 'node': base_doc, 'id': base_id }
+            # Structure the base and witness values
+            base_values = { 'node': base_doc, 'id': base_id }
+            
+            ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
+            docs = map(resolve, uris)
 
-        ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
-        docs = map(resolve, uris)
+            variant_texts = []
+            for node, witness_id in zip(docs, ids):
 
-        variant_texts = []
-        for node, witness_id in zip(docs, ids):
+                # Ensure that Nodes which could not be parsed are logged as server errors
+                # Resolves SPP-529
+                if node is not None:
+                    witness_values = { 'node': node, 'id': witness_id }
+                    variant_texts.append( witness_values )
+                else:
+                    self.output += "<div>Failed to parse the XML for the transcript " + witness_id + "</div>"
+                    self.write_message(self.output)
+                    logging.warn("Failed to parse the XML for the transcript %s", witness_id)
+                    
+        except Exception as loadEx:
+            self.output += "<div>Failed to load the documents: <span>" + str(loadEx) + "</span></div>"
+            self.write_message(self.output)
+            return
 
-            # Ensure that Nodes which could not be parsed are logged as server errors
-            # Resolves SPP-529
-            if node is not None:
-                witness_values = { 'node': node, 'id': witness_id }
-                variant_texts.append( witness_values )
-            else:
-                logging.warn("Failed to parse the XML for the transcript %s", witness_id)
+        self.output += "<div>Tokenizing the Documents...</div>"
+        self.write_message(self.output)
 
-        self.write_message("Tokenizing the Documents...")
+        try:
+            # Retrieve the base Text
+            base_text = Text(base_doc, base_id, tokenizer)
+            base_text.tokenize()
 
-        # Retrieve the base Text
-        base_text = Text(base_doc, base_id, tokenizer)
-        base_text.tokenize()
+            # Retrieve the variant Texts
+            witness_texts = map(lambda witness: Text(witness['node'], witness['id'], tokenizer), variant_texts)
 
-        # Retrieve the variant Texts
-        witness_texts = map(lambda witness: Text(witness['node'], witness['id'], tokenizer), variant_texts)
+        except Exception as tokenizeEx:
+            self.output += "<div>Failed to tokenize the documents: <span>" + str(tokenizeEx) + "</span></div>"
+            self.write_message(self.output)
+            return
 
-        self.write_message("Collating the Documents...")
+        self.output += "<div>Collating the Documents...</div>"
+        self.write_message(self.output)
 
-        collation = collate_async(self.executor, base_text, witness_texts, poem_id, base_id)
+        try:
+            collation = collate_async(self.executor, base_text, witness_texts, poem_id, base_id, self, self.output)
 
-        # Collate the witnesses in parallel
-#        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
-#        diffs = self.executor.map( compare, diff_args )
+            # Collate the witnesses in parallel
+            #        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
+            #        diffs = self.executor.map( compare, diff_args )
 
-#        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
-#        collation = Collation(base_text, diffs, tei_dir_path)
+            #        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
+            #        collation = Collation(base_text, diffs, tei_dir_path)
 
-        self.write_message(self.render_string("collate.html", collation=collation))
+            self.write_message(self.render_string("collate.html", collation=collation))
+        except Exception as collateEx:
+            self.output += "<div>Failed to collate the documents: <span>" + str(collateEx) + "</span></div>"
+            self.write_message(self.output)
 
     def on_close(self):
         pass

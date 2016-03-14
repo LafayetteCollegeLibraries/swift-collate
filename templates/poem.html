@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block poem %}
+{% block poemDisabled %}
       <div id="poem-container" class="row" ng-controller="FormController">
         <div class="col-md-12">
           <h2>A Set of Transcripts for the Poem {{ poem_id }}</h2>
@@ -44,47 +44,36 @@
 
 {% block collation %}
 <div>
-
-
       <div id="poem-container" class="row" ng-controller="FormController">
         <div class="col-xs-12">
           <h2>Poem {{ poem_id }}</h2>
 	  <form action="/collate/collate/{{ poem_id }}" id="collate-form" method="post" >
 	    <!--<form action="/collate/{{ poem_id }}" id="collate-form" method="post">-->
 
-	    <fieldset class="form-group">
-              <legend for="base-text-select2">Base Transcript</legend>
-	      <select id="base-text-select2" class="form-control" name="base_text" ng-model="baseText"></select>
-	    </fieldset>
 	    <script src="{{ static_url('js/poem.js') }}"></script>
 	    <script src="/collate/static/js/poem.js"></script>
 
             <legend for="variant-fields">Variant Transcripts</legend>
-	    <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#variant-fields" aria-expanded="false" aria-controls="">Select Variants</button>
-
-	    <fieldset id="variant-fields" class="collapse">
-
+	    <fieldset id="variant-fields">
 	      <table id="poem-table" class="table table-striped">
 		<thead>
 		  <th></th>
 		  <th>Transcript ID</th>
-		  <th></th>
+		  <th>Base Transcript</th>
+		  <th>Variant Transcript</th>
 		</thead>
 
 		<tbody id="poem-table-body">
 		  {% for transcript in poem_texts %}
-		  <tr>
-		    <td><input type="checkbox" name="variants" id="input-variant-{{ transcript.id }}" class="input-variant" value="{{ transcript.id }}" ng-model="variants['{{ transcript.id }}']"></td>
-
-		    <td>{{ transcript.id }}</td>
-		    <td class="glyphicon glyphicon-move"></td>
-
-		  </tr>
+		    <tr>
+		      <td class="glyphicon glyphicon-move"></td>
+		      <td>{{ transcript.id }}</td>
+		      <td><input type="checkbox" name="base_text" id="input-base-text-{{ transcript.id }}" class="input-base-text" value="{{ transcript.id }}" ng-model="baseText['{{ transcript.id }}']" ></td>
+		      <td><input type="checkbox" name="variants" id="input-variant-{{ transcript.id }}" class="input-variant" value="{{ transcript.id }}" ng-model="variants['{{ transcript.id }}']"></td>
+		    </tr>
 		  {% end %}
 		</tbody>
 	      </table>
-
-
 
 	      <!-- See https://github.com/angular/angular.js/pull/2574 -->
 	      <input type="hidden" name="poem" id="poem" value="{{ poem_id }}" ng-model="poem" ng-init="poem='{{ poem_id }}'"/>
@@ -92,8 +81,7 @@
 
             <legend for="tokenizer">Tokenizer</legend>
 	    <select id="tokenizer" class="form-control" name="tokenizer" ng-model="tokenizer">
-	      <option value="SwiftSentenceTokenizer" selected="true">Swift Sentence Tokenizer</option> 
-	      <option value="PunktSentenceTokenizer">Punkt Sentence Tokenizer</option>
+	      <option value="SwiftSentenceTokenizer" selected="selected">Swift Sentence Tokenizer</option> 
 	      <option value="TreebankWordTokenizer">Penn Treebank Tokenizer</option>
 	    </select>
 
@@ -108,7 +96,6 @@
 	      <input type="submit" id="collate" class="btn btn-primary" data-ng-click="requestCollation($event)" value="Collate" name="collate"/>
 	      <input type="reset" class="btn btn-danger reset" data-ng-click="resetCollation($event)" value="Reset"/>
 	    </div>
-
           </form>
         </div>
       </div>

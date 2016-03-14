@@ -12,7 +12,7 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	    var dataStream = $websocket('ws://santorini0.stage.lafayette.edu/collate/stream');
 	    //var dataStream = $websocket('wss://santorini0.stage.lafayette.edu/collate/stream');
 
-	    var data = "<span>No transcripts selected for collation</span>";
+	    var data = "";
 
 	    /*
 	    var methods = {
@@ -84,12 +84,12 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	    $scope.requestCollation = function(event) {
 		event.preventDefault();
 
-		/*
 		var params = { poem: $scope.poem,
 			       baseText: $scope.baseText,
 			       variants: $scope.variants,
 			       tokenizer: $scope.tokenizer };
-		*/
+
+		/*
 		// Work-around
 		var variants = $scope.variants;
 		if( !$('#variant-fields').hasClass('in') ) {
@@ -100,6 +100,7 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 			       baseText: $scope.baseText,
 			       variants: variants,
 			       tokenizer: $scope.tokenizer };
+		*/
 
 		Stream.send(params);
 	    };
@@ -111,7 +112,10 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	     *
 	     */
 	    $scope.poem = null;
-	    $scope.baseText = null;
+	    //$scope.baseText = null; // Select the first arbitrary value
+	    // Work-around to set the widget to the default value
+	    //$scope.baseText = $('#base-text-select2 option[selected="selected"]').val();
+	    $scope.baseText = {};
 	    $scope.variants = {};
 
 	    // By default, the variants should be populated
@@ -126,19 +130,16 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	    $scope.allVariants = variants;
 
 	    // Work-around
-
-	    $scope.tokenizer = null;
+	    $scope.tokenizer = 'SwiftSentenceTokenizer';
 	    
 	    $scope.requestCollation = function(event) {
 		event.preventDefault();
 
-		/*
 		var params = { poem: $scope.poem,
 			       baseText: $scope.baseText,
 			       variants: $scope.variants,
 			       tokenizer: $scope.tokenizer };
-		*/
-
+		/*
 		// Work-around
 		var variants = $scope.variants;
 		if( !$('#variant-fields').hasClass('in') ) {
@@ -149,6 +150,7 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 			       baseText: $scope.baseText,
 			       variants: variants,
 			       tokenizer: $scope.tokenizer };
+		*/
 		Stream.send(params);
 	    };
 	    // @todo Deduplicate
