@@ -57,6 +57,34 @@ class TestCollation:
 
         return diff_text
 
+    @pytest.fixture()
+    def base_text_043_(self):
+        uri = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/043-89L-.tei.xml')
+        base_doc = Tokenizer.parse_text(uri)
+        base_text = Text(base_doc, '043-89L-', SwiftSentenceTokenizer)
+        return base_text
+
+    @pytest.fixture()
+    def diff_texts_043_(self):
+        uri = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/043-89L-.tei.xml')
+        base_doc = Tokenizer.parse_text(uri)
+        base_text = Text(base_doc, '043-89L-', SwiftSentenceTokenizer)
+        diff_texts = []
+
+        uri = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/043-ROGP.tei.xml')
+        variant_doc = Tokenizer.parse_text(uri)
+        variant_text = Text(variant_doc, '043-ROGP', SwiftSentenceTokenizer)
+
+        diff_texts.append( DifferenceText(base_text, variant_text, SwiftSentenceTokenizer) )
+
+        uri = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/043-WILH.tei.xml')
+        variant_doc = Tokenizer.parse_text(uri)
+        variant_text = Text(variant_doc, '043-WILH', SwiftSentenceTokenizer)
+
+        diff_texts.append( DifferenceText(base_text, variant_text, SwiftSentenceTokenizer) )
+
+        return diff_texts
+
     def test_init(self, base_text, diff_text):
         diffs = [diff_text]
         tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'xml', '613')
@@ -88,3 +116,8 @@ class TestCollation:
 
         assert collation.headnotes[0].witnesses[0]['line'].value == "Written in the Year 1724.\r"
         assert collation.headnotes[0].witnesses[0]['line'].base_line.value == "\r"
+
+    def test_collate_lines(self, base_text_043_, diff_texts_043_):
+        tei_dir_path = os.path.join('/var/lib/spp/tei/poems', '043-')
+
+        collation = Collation(base_text_043_, diff_texts_043_, tei_dir_path)

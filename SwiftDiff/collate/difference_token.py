@@ -12,7 +12,7 @@ class DifferenceToken(Token):
 
         self.distance = self.find_distance(base_token, other_token)
 
-        super(DifferenceToken, self).__init__(other_token.value, other_token.index, other_token.classes, other_token.markup)
+        super(DifferenceToken, self).__init__(other_token.value, other_token.index, other_token.classes, other_token.markup, other_token.pos)
 
     def find_distance(self, base_token, other_token):
 

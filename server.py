@@ -13,6 +13,7 @@ import pickle
 import logging
 import signal
 import json
+import traceback
 
 import networkx as nx
 from lxml import etree
@@ -163,7 +164,7 @@ class TokenModule(tornado.web.UIModule):
 
             token_value = etree.tostring(element)
             
-        return self.render_string("token.html", token=token_value, classes=classes)
+        return self.render_string("token.html", token=token_value, classes=classes, pos=token.pos)
 
 def cache(collection_name, key, value=None):
     """Retrieves, creates, or updates a cached data structure into the cache store
@@ -521,6 +522,7 @@ class StreamHandler(tornado.websocket.WebSocketHandler):
             self.write_message(self.render_string("collate.html", collation=collation))
         except Exception as collateEx:
             self.output += "<div>Failed to collate the documents: <span>" + str(collateEx) + "</span></div>"
+            self.output += "<div><span>" + traceback.format_exc() + "</span></div>"
             self.write_message(self.output)
 
     def on_close(self):
@@ -700,6 +702,7 @@ class PoemsHandler(tornado.web.RequestHandler):
 
         # @todo Refactor and abstract
         uris = doc_uris(poem_id)
+
         ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
             
         poem_file_paths = {

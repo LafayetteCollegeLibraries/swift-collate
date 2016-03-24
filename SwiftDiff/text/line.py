@@ -1,3 +1,7 @@
+import nltk
+from nltk.tag import pos_tag
+nltk.download('maxent_treebank_pos_tagger')
+import numpy
 
 import string
 
@@ -27,6 +31,10 @@ class Line(object):
         self.tokens = []
 
         token_values = self.tokenizer.tokenize(self.value)
+
+        # Retrieve the POS tags
+        # Classify the token in terms of the part-of-speech using a Perceptron-based tagger
+        pos_tags = pos_tag(token_values)
         
         line_value = self.value
 
@@ -59,7 +67,7 @@ class Line(object):
                         # line_value = ''.replace(line_value, token_value, '', 1)
             
             # Create the token
-            token = Token(token_value, token_index, token_classes, token_markup)
+            token = Token(token_value, token_index, token_classes, token_markup, pos_tags[token_index][-1])
 
             self.tokens.append(token)
 

@@ -5,7 +5,7 @@
 	    <h3>Line Tokens</h3>
 	    <table class="table table-striped">
 	      <thead>
-		<th>Witness</th>
+		<th></th>
 	      </thead>
 	      
 	      <tbody>
@@ -15,6 +15,12 @@
 		    {% module Token(token.base_token) %}
 		  {% end %}
 		</tr>
+		<tr>
+		  <td class="">Part of Speech</td>
+		  {% for token in lines.witnesses[0]['line'].tokens %}
+		    <td>{{ token.pos }}</td>
+		  {% end %}
+		</tr>
 
 		{% for line_values in lines.witnesses %}
 		<tr>
@@ -22,6 +28,12 @@
 		  
 		  {% for token in line_values['line'].tokens %}
 		    {% module Token(token) %}
+		  {% end %}
+		</tr>
+		<tr>
+		  <td class="">Part of Speech</td>
+		  {% for token in line_values['line'].tokens %}
+		    <td>{{ token.pos }}</td>
 		  {% end %}
 		</tr>
 		{% end %}

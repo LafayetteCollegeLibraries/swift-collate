@@ -113,18 +113,27 @@ class Collation:
 
                 diff_line.uri = '/transcripts/' + self.transcript_path(diff.other_text.id)
 
-                index, target, distance = line_key.split('#')
-                target_segments = target.split('-')
-
-                target_index = target_segments[-1]
-
-                # Retrieve the type of structure
-                target_structure = target_segments[-2]
-
-                # footnote_line_index = index + ' (' + distance + ' characters into ' + target_structure + ' ' + target_index + ')'
+                # Attempt to provide basic linking for the footnotes
+                #
                 footnote_line_index = line_key
+                line_values = line_key.split('#')
+                if len(line_values) == 3:
 
-                diff_line.position = distance + ' characters into ' + target_structure + ' ' + target_index
+                    index, target, distance = line_values
+                    target_segments = target.split('-')
+
+                    if len(target_segments) == 2:
+
+                        target_index = target_segments[-1]
+
+                        # Retrieve the type of structure
+                        target_structure = target_segments[-2]
+
+                        diff_line.position = distance + ' characters into ' + target_structure + ' ' + target_index
+                    else:
+                        print 'The target for the footnote link could not be parsed: ' + ', '.join(target_segments)
+                else:
+                    print 'The key for the footnote link could not be parsed: ' + ', '.join(line_values)
 
                 # Collated footnote line tokens
                 #
