@@ -1,2 +1,21 @@
-{% autoescape None %}
-<td class="{{ classes }}">{{ line }}</td>
+	  {% for title_index, title_diffs in enumerate(collation.body) %}
+		<tr>
+		  <td class="base"><a href="/">{{ collation.base_text.id }}</a></td>
+		  <td class="index">{{ title_index + 1}}</td>
+		</tr>
+		{% for title_diff in title_diffs.variant_lines %}
+		<tr>
+		  <td class="base"><a href="/">{{ collation.base_text.id }}</a></td>
+		  <td class="index">{{ title_index + 1}}</td>
+		  <td class=""><a href="/">{{ title_diff.value }}</a></td>
+		</tr>
+		{% if title_index in collation.footnotes %}
+		{% for title_diff in collation.footnotes[title_index] %}
+		<tr>
+		  <td class="base"><a href="/">{{ collation.base_text.id }}</a></td>
+		  <td class="index">{{ title_index + 1}}</td>
+		  <td class=""><a href="/">{{ title_diff.value }}</a></td>
+		</tr>
+		{% end %}
+		{% end %}
+	  {% end %}

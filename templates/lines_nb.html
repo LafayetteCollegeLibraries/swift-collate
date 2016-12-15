@@ -1,0 +1,29 @@
+{% for line_index, line_diffs in enumerate(collation.body) %}
+  <tr>
+    <td><a href="/">{{ collation.base_text.id }}</a></td>
+    <td class="index">Line {{ line_index + 1 }}</td>
+    {% for token in line_diffs.base_line.tokens %}
+      {% module Token(token) %}
+    {% end %}
+  </tr>
+  {% for line_diff in line_diffs.variant_lines %}
+    <tr>
+      <td><a href="/">{{ line_diff.id }}</a></td>
+      <td class="index">Line {{ line_index + 1 }}</td>
+      {% for token in line_diff.tokens %}
+        {% module Token(token) %}
+      {% end %}
+    </tr>
+  {% end %}
+    {% if (line_index + 1) in collation.footnotes %}
+      {% for footnote_diff in collation.footnotes[line_index + 1].variant_lines %}
+        <tr>
+	  <td ><a href="/">{{ footnote_diff.id }}</a></td>
+	  <td class="index">Footnote {{ line_index + 1 }}</td>
+	  {% for token in footnote_diff.tokens %}
+            {% module Token(token) %}
+	  {% end %}
+	</tr>
+      {% end %}
+    {% end %}
+{% end %}

@@ -4,38 +4,40 @@ nltk.download('maxent_treebank_pos_tagger')
 import numpy
 
 import string
+import json
 
-from token import Token
+from token import Token, TokenJSONEncoder
 
 class Line(object):
 
-    def __init__(self, value, index, tokenizer, classes={}, markup={}):
+    def __init__(self, value, index, tokenizer, tagger, classes={}, markup={}, footnotes=[]):
 
         self.value = value
         self.index = index
         self.tokens = []
         self.tokenizer = tokenizer()
+        self.tagger = tagger
         self.classes = classes
         self.markup = markup
-
-    def __unicode__(self):
-
-        return unicode(self.value).encode('utf-8')
-
-    def __str__(self):
-
-        return self.__unicode__()
+        self.footnotes = footnotes
 
     def tokenize(self):
+        """Tokenize the line
+        """
 
         self.tokens = []
-
         token_values = self.tokenizer.tokenize(self.value)
 
         # Retrieve the POS tags
         # Classify the token in terms of the part-of-speech using a Perceptron-based tagger
-        pos_tags = pos_tag(token_values)
-        
+
+        ## Disabling in order to test SPP-651
+        # pos_tags = pos_tag(token_values)
+        if self.tagger is None:
+            pos_tags = []
+        else:
+            pos_tags = self.tagger.tag(token_values)
+
         line_value = self.value
 
         # Need to parse the classes
@@ -67,14 +69,34 @@ class Line(object):
                         # line_value = ''.replace(line_value, token_value, '', 1)
             
             # Create the token
-            token = Token(token_value, token_index, token_classes, token_markup, pos_tags[token_index][-1])
+
+
+            if token_index in pos_tags:
+                token = Token(token_value, token_index, token_classes, token_markup, pos_tags[token_index][-1])
+            else:
+                token = Token(token_value, token_index, token_classes, token_markup, None)
 
             self.tokens.append(token)
 
 class FootnoteLine(Line):
 
-    def __init__(self, value, index, target_id, distance_from_parent, tokenizer, classes={}, markup={}):
+    def __init__(self, value, index, target_id, distance_from_parent, tokenizer, tagger=None, classes={}, markup={}):
         
         self.target_id = target_id
         self.distance_from_parent = distance_from_parent
-        super(FootnoteLine, self).__init__(value, index, tokenizer=tokenizer, classes=classes, markup=markup)
+        super(FootnoteLine, self).__init__(value, index, tokenizer=tokenizer, tagger=tagger, classes=classes, markup=markup)
+
+####
+
+class LineJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+
+        if isinstance(obj, Line):
+            return {
+                'value': obj.value,
+                'index': obj.index,
+                'tokens': map(lambda token: json.loads(TokenJSONEncoder().encode(token)), obj.tokens),
+                'classes': obj.classes,
+                'markup': obj.markup
+                }
+        return json.JSONEncoder.default(self, obj)

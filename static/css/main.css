@@ -4,12 +4,40 @@
  * @author griffinj@lafayette.edu
  */
 
+html, body {
+    font-family: "Whitney SSm A","Whitney SSm B",sans-serif;
+    background-color: #ffffff;
+}
+
+a {
+    color: #ffffff;
+}
+
+.nav-pills > li > a {
+    background-color: #a53a23;
+    color: #ffffff;
+}
+
+#collate-form .container-fluid {
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+legend {
+    color: inherit;
+    border-width: 0 0 0 0;
+    margin-bottom: inherit;
+}
+
 /*
  * Header
  */
 #header-container {
-    background-color: #ffffff;
-    background-image: url("../img/swift_header.png");
+    /*
+    background-color: #00bce4;
+    */
+    background-color: #a53a23;
+    color: #ffffff;
     width: 100%;
 }
 
@@ -21,38 +49,106 @@
 /**
  * Navbar
  */
-#navbar-menu {
-    height: 64px;
-}
-
-#navbar-menu li {
-    padding: 2px;
-}
-
-#navbar-menu li a {
-    color: #ffffff;
-    font-size: x-large;
-    height: 64px;
-    text-align: center;
-}
-
-#menu-nav-reset {
-    padding-top: 8px;
-}
 
 /**
  * Footer
+ *
  */
-#footer-navbar {
-    margin-bottom: 0;
-    text-align: center;
+#footer {
+    padding-left: 0px;
+    padding-right: 0px;
 }
 
 
+#footer-navbar {
+    margin-bottom: 0;
+    text-align: center;
+    bottom: 0;
+    width: 100%;
+}
 
 /**
  * Body
+ *
  */
+
+#content {
+    /* padding: 24px; */
+    text-align: center;
+}
+
+#project-logo {
+    /*
+    background-color: #00bce4;
+    */
+    /*
+    background-color: #a53a23;
+    border-radius: 64px;
+    padding: 8px;
+    width: 618px;
+    */
+}
+
+/**
+ * Poem interface
+ *
+ */
+#collate-form .mode-control {
+    width: inherit;
+    height: inherit;
+}
+
+/**
+ * Collation interface
+ *
+ */
+/*
+.table-striped > tbody > tr:nth-child(2n) td {
+    color: #d68378;
+}
+*/
+
+/*
+.table-striped > tbody > tr:nth-child(2n+1) {
+    color: #ffffff;
+    background-color: #d68378;
+}
+*/
+/*
+.table-striped > tbody > tr:nth-child(2n+1) a {
+    text-decoration: underline;
+}
+*/
+
+.table-striped > tbody > tr a {
+    color: #a53a23;
+    text-decoration: underline;
+}
+
+#mode .container-fluid {
+    display: inline-block;
+}
+
+#collation {
+    padding-bottom: 3.3333%;
+}
+#content {
+    padding-bottom: 3.3333%;
+}
+
+#collate {
+    background-image: linear-gradient(to bottom, #545454, #333333);
+    border-color: #333333;
+}
+.btn-primary:active, .btn-primary.active {
+    background-color: #333333;
+    border-color: #333333;
+}
+.btn-primary:hover, .btn-primary:focus {
+    background-color: #333333;
+    background-position: 0 -15px;
+}
+
 .page-header {
     color: #ffffff;
 }
@@ -95,30 +191,32 @@
 
 .gradient-none {
 
-    background-color: #F2DEDE;    
+    /*
+      background-color: #F2DEDE;
+      */
 }
 
-.navbar-header {
-
-    float:inherit;
-}
-
-.navbar-brand {
-
-    height: 64px;
-    padding: 8px;
-}
-
-.navbar-brand img {
-
-    height: 48px;
-}
-
-#reset-scroll {
-    padding: 15px 15px 15px 15px;
-    color: #000000;
+#collation-container .table {
     background-color: #ffffff;
-    border-radius: 20px 20px 20px 20px;
+    color: #000000;
+}
+
+#collation-container .table a {
+    color: #a53a23;
+    text-decoration: underline;
+}
+
+
+/*
+ * Styling for the collation table
+ *
+ */
+td.base {
+    width: 4%;
+}
+
+td.token {
+    width: 8%;
 }
 
 .line-row-number {
@@ -129,4 +227,46 @@
 .table > thead > tr > th, .table > tbody > tr > th, .table > tfoot > tr > th, .table > thead > tr > td, .table > tbody > tr > td, .table > tfoot > tr > td {
 
     border-top: inherit;
+}
+
+/**
+ * Styling for the transcripts
+ *
+ */
+@font-face {
+    font-family: "Portcullion";
+    src: url("/static/fonts/portcullion.ttf");
+}
+
+#transcript-sidebar {
+    bottom: 4%;
+    right: 0;
+    width: 12%;
+}
+
+#transcript-sidebar li {
+    background-color: #a53a23;
+    border-radius: 4px;
+}
+
+.tei-document {
+    color: #333333;
+    /*font-family: 'Italianno', cursive;*/
+}
+
+.tei-black-letter {
+    font-family: 'Portcullion';
+    font-size: larger;
+}
+
+.tei-body {
+    text-align: left;
+}
+
+.tei-footnote {
+    text-align: left;
+}
+
+.tei-display-initial {
+    font-size: xx-large;
 }

@@ -1,12 +1,17 @@
 
 import re
 from token import Token
-from line import Line, FootnoteLine
+from line import Line, FootnoteLine, LineJSONEncoder
 from lxml import etree
+import json
+
 
 class TextEntity(object):
 
     def __init__(self):
+        """Create a text entity which contains multiple instances of SwiftDiff.text.line.Line structuring lines of data
+
+        """
 
         self.lines = []
 
@@ -23,8 +28,13 @@ class Body(TextEntity):
     pass
 
 class Footnotes(TextEntity):
+    """Footnotes have lines as dicts using the parent line ID's as keys
 
-    pass
+    """
+
+    def __init__(self):
+
+        self.lines = {}
 
 class Text(object):
 
@@ -35,6 +45,7 @@ class Text(object):
         }
 
     EDITORIAL_MARKUP_TAGS = ['unclear', 'add', 'del', 'subst', 'sic', 'gap']
+#    EDITORIAL_MARKUP_TAGS = ['unclear', 'add', 'del', 'subst', 'sic']
     EDITORIAL_MARKUP = {
 
         'unclear': {
@@ -70,7 +81,7 @@ class Text(object):
             },
         }
 
-    def __init__(self, doc, doc_id, tokenizer):
+    def __init__(self, doc, doc_id, tokenizer, tagger = None):
 
         self.titles = Titles()
         self.title_footnotes = Footnotes()
@@ -78,9 +89,13 @@ class Text(object):
         self.body = Body()
         self.footnotes = Footnotes()
 
+        if doc is None:
+            raise Exception("No XML Document passed for " + doc_id)
+
         self.doc = doc
         self.id = doc_id
         self.tokenizer = tokenizer
+        self.tagger = tagger
 
         self.markup_starts = None
 
@@ -202,19 +217,15 @@ class Text(object):
                 element.getparent().remove(element)
 
         elif element_tag_name == 'ref':
-            
-            # element_text = '*' + element_text
-            # element_text = '<FOOTNOTE>'
-            # element_text = '<' + element_text + '>'
+
             element_text = ''
 
             class_ends = self.markup_starts + len(element_text)
 
-            _result_markup['footnote'] = [{
-                    
-                    'markup' : { 'a': { 'class': 'glyphicon glyphicon-hand-down', 'href': '#footnote-' + element_text } },
-                    'range' : { 'start':self.markup_starts, 'end':class_ends }
-                    }]
+#            _result_markup['footnote'] = [{
+#                    'markup' : { 'a': { 'class': 'glyphicon glyphicon-hand-down', 'href': '#footnote-' + element_text } },
+#                    'range' : { 'start':self.markup_starts, 'end':class_ends }
+#                    }]
 
             self.markup_starts = class_ends + 1
 
@@ -224,6 +235,9 @@ class Text(object):
             # element_text = ' '
             # Resolves SPP-620
             element_text = '_'
+
+
+            
             
         elif self.markup_starts is None:
 
@@ -314,6 +328,10 @@ class Text(object):
         result['markup'] = result_markup
         result['classes'] = result_classes
 
+        # Handling for <gap> elements
+        if element_tag_name == 'gap':
+            pass
+
         return result
 
     def tokenize_titles(self, line_xpath = '//tei:title', line_namespaces = {'tei': 'http://www.tei-c.org/ns/1.0'}):
@@ -332,7 +350,7 @@ class Text(object):
             line_classes = line_values['classes']
             line_index = element.get('{%s}id' % 'http://www.w3.org/XML/1998/namespace')
 
-            line = Line(line_value, line_index, tokenizer=self.tokenizer, classes=line_classes, markup=line_markup)
+            line = Line(line_value, line_index, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
 
             self.titles.lines.append( line )
 
@@ -352,11 +370,11 @@ class Text(object):
             line_classes = line_values['classes']
             line_index = element.get('n')
 
-            line = Line(line_value, line_index, tokenizer=self.tokenizer, classes=line_classes, markup=line_markup)
+            line = Line(line_value, line_index, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
 
             self.headnotes.lines.append( line )
 
-    def tokenize_body(self, line_xpath = '//tei:body/tei:div[@type="book"]/tei:div/tei:lg[@type="stanza"]/tei:l[@n]', line_namespaces = {'tei': 'http://www.tei-c.org/ns/1.0'}):
+    def tokenize_body(self, line_xpath = '//tei:body/tei:div[@type="book"]/tei:div/tei:lg/tei:l[@n]', line_namespaces = {'tei': 'http://www.tei-c.org/ns/1.0'}):
 
         unsorted_lines = {}
 
@@ -366,13 +384,12 @@ class Text(object):
             self.markup_starts = None
 
             line_values = self.parse_element(element)
-
             line_value = line_values['text']
             line_markup = line_values['markup']
             line_classes = line_values['classes']
             line_index = element.get('n')
 
-            line = Line(line_value, line_index, tokenizer=self.tokenizer, classes=line_classes, markup=line_markup)
+            line = Line(line_value, line_index, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
 
             self.body.lines.append( line )
 
@@ -382,68 +399,97 @@ class Text(object):
 
         # @todo Refactor
         elements = self.doc.xpath(line_xpath, namespaces=line_namespaces)
-
         for element in elements:
 
             self.markup_starts = None
-
-            # Retrieve the target for the footnote using the neighboring <ref>
-            # Prune this element (as it contains the footnote number)
-            ref_elements = element.xpath('../tei:ref', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
-            if ref_elements:
-
-                # ref_elements[0].getparent().remove(ref_elements[0])
-                # We now preserve the <ref> elements
-                # @resolves SPP-597
-                #
-                pass
 
             line_values = self.parse_element(element)
             line_value = line_values['text']
             line_markup = line_values['markup']
             line_classes = line_values['classes']
-            line_index = element.get('n')
-
-            # Retrieve the XML ID
-            footnote_id = element.get('{%s}id' % 'http://www.w3.org/XML/1998/namespace')
+            footnote_index = element.get('n')
+            distance_from_parent = 0
 
             # Retrieve the target for the footnote using the neighboring <ref>
             # ref_element = element.getprevious()
             # target_id = ref_element.get('target')
 
-            # Retrieve the link group entry for the link
+            # Attempt to extract the ID from the footnote element
+            footnote_id = element.get('{%s}id' % 'http://www.w3.org/XML/1998/namespace')
 
-            link_elements = self.doc.xpath('//tei:linkGrp/tei:link[starts-with(@target, "#' + footnote_id + '")]', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            # If the ID was extracted, attempt to resolve the <ref> link within the <linkGrp>
+            if footnote_id is not None:
+                link_target = None
+                link_elements = self.doc.xpath('//tei:linkGrp/tei:link[starts-with(@target, "#' + footnote_id + '")]', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+                if len(link_elements) > 0:
+                    link_element = link_elements.pop()
+                    link_target = link_element.get('target')
+                    link_number = link_element.get('n')
 
-            if len(link_elements) > 0:
-                link_element = link_elements[0]
-                link_target = link_element.get('target')
-                target_id = link_target.split(' ')[-1]
+            if footnote_id is None or link_target is None or link_number is None:
+                # If the ID cannot be extracted (or the reference to the line element cannot be resolved), simply reference the parent element
+
+                # Attempt to retrieve the parent line
+                parent_elements = element.xpath('..', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+                parent_element = parent_elements.pop()
+
+                # Use the parent element's ID as the reference
+                parent_number = parent_element.get('n')
+                if parent_number is None:
+                    parent_id = parent_element.get('{%s}id' % 'http://www.w3.org/XML/1998/namespace')
+                    footnote_ref = parent_id
+                else:
+                    # parent_index = int(parent_number) - 1
+                    footnote_ref = int(parent_number)
+
+                # There are probably cases in which <note @type="head"> children also feature footnotes
+                # @todo Resolve
+                
+#                if line_index <= len(self.body.lines):
+#                    print 'Adding a footnote for the line ' + str(line_index)
+#                    self.body.lines[line_index].footnotes.append(line)
+
+#                    print 'Added the following footnotes:'
+#                    self.body.lines[line_index].footnotes
+
+#                    self.footnotes.lines[line_index] = line
+#                    print self.footnotes.lines
+
+            else:
+                # target_id = link_target.split(' ')[-1]
+                # footnote_ref = target_id
+                footnote_ref = int(link_number)
+
+                link_index = int(link_number) - 1
 
                 # Retrieve the distance from the parent
-                if element.getparent().text is None:
-
-                    distance_from_parent = 0
-                else:
-                
+                if element.getparent().text is not None:
                     distance_from_parent = len(element.getparent().text)
 
-                line = FootnoteLine(line_value, line_index, target_id, distance_from_parent, tokenizer=self.tokenizer, classes=line_classes, markup=line_markup)
+            line = FootnoteLine(line_value, footnote_index, footnote_ref, distance_from_parent, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
 
-                if re.match(r'.+\-title\-', target_id):
+            self.footnotes.lines[footnote_ref] = line
 
-                    self.title_footnotes.lines.append( line )
-                else:
-
-                    # There are probably cases in which <note @type="head"> children also feature footnotes
-                    # @todo Resolve
-                    self.footnotes.lines.append( line )
-
+            # Ensure that the footnote element is removed
             element.getparent().remove(element)
 
     def tokenize(self):
 
-        self.tokenize_footnotes()
         self.tokenize_titles()
         self.tokenize_headnotes()
+        self.tokenize_footnotes()
         self.tokenize_body()
+
+class TextJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+
+        if isinstance(obj, Text):
+            return {
+                'id': obj.id,
+                'titles':  map(lambda line: LineJSONEncoder().encode(line), obj.titles.lines) ,
+                'title_footnotes':  map(lambda line: LineJSONEncoder().encode(line), obj.title_footnotes.lines) ,
+                'headnotes':  map(lambda line: LineJSONEncoder().encode(line), obj.headnotes.lines) ,
+                'body':  map(lambda line: LineJSONEncoder().encode(line), obj.body.lines) ,
+                'footnotes':  map(lambda line: LineJSONEncoder().encode(line), obj.footnotes.lines)
+                }
+        return json.JSONEncoder.default(self, obj)

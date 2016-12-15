@@ -71,13 +71,12 @@
 
 	    $("#poems-select2").select2({
 		    placeholder: "Select a Poem",
-			allowClear: true,
-			}).on("select2:select", function(event) {
-				var slug = $(event.target).val();
+		    allowClear: true,
+	    }).on("select2:select", function(event) {
+		    var slug = $(event.target).val();
 
-				// Redirect the user to the appropriate Poem
-				window.location.assign('poems/' + slug);
-			    });
-
+		    // Redirect the user to the appropriate Poem
+		    window.location.assign('poems/' + slug);
+	    });
 	});
 }(jQuery));

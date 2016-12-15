@@ -1,17 +1,8 @@
 	  {% for line_index, lines in list(enumerate(collation.title_footnotes, start=1)) %}
 
-	    <h2>Footnote (Title) {{ line_index }}</h2>
-
-	    <h3>Footnote Tokens</h3>
-	    <table class="table table-striped">
-	      <thead>
-		<th>Witness</th>
-		<th>Line</th>
-	      </thead>
-	      
-	      <tbody>
 		<tr>
 		  <td class="base"><a href="#">{{ collation.base_id }}</a></td>
+		  <td class="index">Footnote (Title) {{ line_index }}</td>
 		  {% for token in lines.witnesses[0]['line'].tokens %}
 		    {% module Token(token.base_token) %}
 		  {% end %}
@@ -19,13 +10,11 @@
 
 		{% for line_values in lines.witnesses %}
 		<tr>
-		  <td><a href="{{ line_values['line'].uri }}"> {{ line_values['id'] }} </a></td>
-		  <td><a href="#">{{ line_values['id'] }}#</a></td>
+		  <td><a href="{{ line_values['line'].uri }}"> {{ line_values['id'] }}</a></td>
+		  <td class="index">Footnote (Title) {{ line_index }}</td>
 		  {% for token in line_values['line'].tokens %}
 		    {% module Token(token) %}
 		  {% end %}
 		</tr>
 		{% end %}
-	      </tbody>
-	    </table>
 	  {% end %}

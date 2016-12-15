@@ -1,72 +1,31 @@
 {% extends "base.html" %}
 
-{% block poemDisabled %}
-      <div id="poem-container" class="row" ng-controller="FormController">
-        <div class="col-md-12">
-          <h2>A Set of Transcripts for the Poem {{ poem_id }}</h2>
-          <p>A Set of Transcripts for Poem within the Swift Poems Project.</p>
-	  <form action="/collate/collate/{{ poem_id }}" id="collate-form" method="post" >
-	  <!--<form action="/collate/{{ poem_id }}" id="collate-form" method="post">-->
-	    <fieldset>
-	      <table class="table table-striped">
-		<thead>
-		  <th></th>
-		  <th>Transcript ID</th>
-		  <th>Base Text</th>
-		  <th>Variant</th>
-		</thead>
-		<tbody id="poem-table-body">
-		  <tr>
-		    <td></td>
-		    <td></td>
-		    <td><input type="button" id="input-base-text-reset" value="Unset the Base Text"></td>
-		    <td><input type="button" id="input-variant-all" value="Select All Transcripts"></td>
-		  </tr>
-		  {% for transcript in poem_texts %}
-		  <tr>
-		    <td class="glyphicon glyphicon-move"></td>
-		    <td>{{ transcript.id }}</td>
-		    <td><input type="checkbox" name="base_text" id="input-base-text-{{ transcript.id }}" class="input-base-text" value="{{ transcript.id }}" ng-model="baseText['{{ transcript.id }}']" ></td>
-		    <td><input type="checkbox" name="variants" id="input-variant-{{ transcript.id }}" class="input-variant" value="{{ transcript.id }}" ng-model="variants['{{ transcript.id }}']" ></td>
-		  </tr>
-		  {% end %}
-		</tbody>
-	      </table>
-
-	      <!-- See https://github.com/angular/angular.js/pull/2574 -->
-	      <input type="hidden" name="poem" id="poem" value="{{ poem_id }}" ng-model="poem" ng-init="poem='{{ poem_id }}'"/>
-	    </fieldset>
-	    <input type="submit" id="collate" class="btn btn-primary" data-ng-click="requestCollation($event)" value="Collate" name="collate"/>
-          </form>
-        </div>
-      </div>
-{% end %}
-
 {% block collation %}
 <div>
       <div id="poem-container" class="row" ng-controller="FormController">
         <div class="col-xs-12">
           <h2>Poem {{ poem_id }}</h2>
-	  <form action="/collate/collate/{{ poem_id }}" id="collate-form" method="post" >
-	    <!--<form action="/collate/{{ poem_id }}" id="collate-form" method="post">-->
+	  <form action="/collate/{{ poem_id }}" id="collate-form" method="post" >
 
 	    <script src="{{ static_url('js/poem.js') }}"></script>
-	    <script src="/collate/static/js/poem.js"></script>
 
-            <legend for="variant-fields">Variant Transcripts</legend>
+	    <div class="container-fluid">
+            <legend for="variant-fields">Transcripts</legend>
 	    <fieldset id="variant-fields">
 	      <table id="poem-table" class="table table-striped">
 		<thead>
 		  <th></th>
+		  <th></th>
 		  <th>Transcript ID</th>
-		  <th>Base Transcript</th>
-		  <th>Variant Transcript</th>
+		  <th>Copy-Text</th>
+		  <th>Variant Texts</th>
 		</thead>
 
 		<tbody id="poem-table-body">
 		  {% for transcript in poem_texts %}
 		    <tr>
 		      <td class="glyphicon glyphicon-move"></td>
+		      <td><a href="{{ reverse_url('transcripts', transcript.id) }}">View</a></td>
 		      <td>{{ transcript.id }}</td>
 		      <td><input type="checkbox" name="base_text" id="input-base-text-{{ transcript.id }}" class="input-base-text" value="{{ transcript.id }}" ng-model="baseText['{{ transcript.id }}']" ></td>
 		      <td><input type="checkbox" name="variants" id="input-variant-{{ transcript.id }}" class="input-variant" value="{{ transcript.id }}" ng-model="variants['{{ transcript.id }}']"></td>
@@ -78,23 +37,49 @@
 	      <!-- See https://github.com/angular/angular.js/pull/2574 -->
 	      <input type="hidden" name="poem" id="poem" value="{{ poem_id }}" ng-model="poem" ng-init="poem='{{ poem_id }}'"/>
 	    </fieldset>
+	    </div>
 
-            <legend for="tokenizer">Tokenizer</legend>
-	    <select id="tokenizer" class="form-control" name="tokenizer" ng-model="tokenizer">
-	      <option value="SwiftSentenceTokenizer" selected="selected">Swift Sentence Tokenizer</option> 
-	      <option value="TreebankWordTokenizer">Penn Treebank Tokenizer</option>
-	    </select>
+	    <div class="container-fluid">
+              <legend for="mode">Mode</legend>
+	      <fieldset id="mode">
+		<div class="container-fluid">
+		  <label>Nota Bene</label>
+		  <input id="mode-control-nota-bene" class="form-control mode-control" name="mode" ng-model="mode" type="radio" value="notaBene"></input>
+		</div>
+		<div class="container-fluid">
+		  <label>Text Encoding Initative (TEI)</label>
+		  <input id="mode-control-tei" class="form-control mode-control" name="mode" ng-model="mode" type="radio" value="tei"></input>
+		</div>
+	      </fieldset>
+	    </div>
 
-            <legend for="collation-content">Collation Output</legend>
-	    <div ng-controller="StreamController">
-	      <div id="collation-content" class="well" ng-bind-html="status">
-		<span id="collation-content" ng-bind-html="status"></span>
+	    <div class="container-fluid">
+              <legend for="tokenizer">Tokenizer</legend>
+	      <select id="tokenizer" class="form-control" name="tokenizer" ng-model="tokenizer">
+		<option value="SwiftSentenceTokenizer" selected="selected">Swift Sentence Tokenizer</option> 
+		<option value="TreebankWordTokenizer">Penn Treebank Tokenizer</option>
+	      </select>
+	    </div>
+
+	    <div class="container-fluid">
+              <legend for="tagger">Part-of-Speech Tagging</legend>
+	      <select id="tagger" class="form-control" name="tagger" ng-model="tagger">
+		<option value="disabled" selected="selected">Disabled</option> 
+	      </select>
+	    </div>
+
+	    <div class="container-fluid">
+              <legend for="collation-content">Collation Output</legend>
+	      <div ng-controller="StreamController">
+		<div id="collation-content" class="well" ng-bind-html="status">
+		  <span id="collation-content" ng-bind-html="status"></span>
+		</div>
 	      </div>
 	    </div>
 
 	    <div class="btn-group" role="group" aria-label="">
-	      <input type="submit" id="collate" class="btn btn-primary" data-ng-click="requestCollation($event)" value="Collate" name="collate"/>
-	      <input type="reset" class="btn btn-danger reset" data-ng-click="resetCollation($event)" value="Reset"/>
+	      <input type="submit" id="collate" class="btn btn-primary" ng-click="requestCollation($event)" value="Collate" name="collate"/>
+	      <input type="reset" class="btn btn-danger reset" ng-click="resetCollation($event)" value="Reset"/>
 	    </div>
           </form>
         </div>

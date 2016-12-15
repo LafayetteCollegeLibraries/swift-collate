@@ -1,50 +1,25 @@
 {% extends "base.html" %}
 
-{% block poemsDisabled %}
-<div class="container-poems-select" ng-controller="PoemsSelectController">
-<form action="" method="post">
-    <fieldset class="form-group">
-        <legend for="poems-select2">Poem for Collation</legend>
-	<ui-select ng-model="person.selected" theme="select2" title="Choose a person">
-	    <ui-select-match placeholder="Select a poem">{% raw "{{ $select.selected.name }}" %}</ui-select-match>
-	    <ui-select-choices repeat='item in (itemArray | filter: {% raw "$select.search" %}) track by item.id'>
-                <span ng-bind="item.name"></span>
-	    </ui-select-choices>
-	</ui-select>
-    </fieldset>
-</form>
-</div>
-{% end %}
-
 {% block content %}
-<form action="" method="post">
-    <fieldset class="form-group">
-        <legend for="poems-select2">Poem Collections</legend>
-	<select id="poems-select2" class="form-control"></select>
-    </fieldset>
-</form>
+  <div class="container-fluid">
+    <h1>Swift Poems Project</h1>
+  </div>
 
-<script src="{{ static_url('js/index.js') }}"></script>
-<script src="/collate/static/js/index.js"></script>
-{% end %}
+  <div class="container-fluid" id="project-logo">
+    <img src="{{ static_url('img/jonathan_swift.png') }}" alt="Swift Poems Project" />
+  </div>
 
-{% block contentDisabled %}
-      <!-- Example row of columns -->
-      <div class="row">
-        <div class="col-md-4">
-          <h2>Collation of Witnesses</h2>
-          <p>Using functionality imported from the networkx and nltk Projects, collections of texts are collated and analyzed for line-by-line similarity.</p>
-          <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
-        </div>
-        <div class="col-md-4">
-          <h2>Developed for Documents in Compliance with the TEI</h2>
-          <p>This project was scoped in order to parse TEI-P5 Documents.</p>
-          <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
-       </div>
-        <div class="col-md-4">
-          <h2>Integration with Fedora Commons</h2>
-          <p>A forthcoming application shall provide integration with collections managed in the Fedora repository.</p>
-          <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
-        </div>
-      </div>
+  <div class="container-fluid">
+    <p>The Swift Poems Project, led by Professor Emeritus of English James Woolley of Lafayette College, and Associate Professor of English Stephen Karian at the University of Missouri, has as its objectives the aggregation, transcription, and critical annotation of the poetic works of Jonathan Swift.  Beginning in 1987, the SPP, using the DOS-based word-processing software called Nota Bene, has amassed more than 6500 digital transcripts of Swift’s poems as they stand in eighteenth-century printed and manuscript sources. In 2012, the National Endowment for the Humanities awarded the SPP a Scholarly Editions Grant to prepare a digital archival  edition to support  the SPP’s forthcoming printed edition, as part of the Cambridge Works of Jonathan Swift  (Cambridge University Press).  For the purposes of developing this digital edition, Lafayette College’s Digital Scholarship Services (DSS) department has automated the encoding of all SPP transcriptions into a TEI-P5 schema.  We intend to preserve these resources within the institution’s digital object repository, on top of which we are developing an interactive user interface (UI) for the digital edition.</p>
+  </div>
+
+  <div class="container-fluid">
+    <form action="" method="post">
+      <fieldset class="form-group">
+	<!--<select id="poems-select2" class="form-control"></select>-->
+      </fieldset>
+    </form>
+  </div>
+
+  <!--<script src="{{ static_url('js/index.js') }}"></script>-->
 {% end %}

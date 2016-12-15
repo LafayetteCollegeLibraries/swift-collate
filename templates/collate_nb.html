@@ -1,0 +1,16 @@
+
+{% block content %}
+      <div id="collation-container" class="row">
+        <div class="col-md-12">
+          <h2>Collation of Variant Texts</h2>
+          <p>Witnesses are organized by line, with each line being further tokenized using an approach optimized for Documents within the Swift Poems Project.</p>
+	  <table class="table">
+	    <tbody>
+	      {% module NotaBeneTitles(collation) %}
+	      {% module NotaBeneHeadnotes(collation) %}
+	      {% module NotaBeneLines(collation) %}
+	    </tbody>
+	  </table>
+        </div>
+      </div>
+{% end %}

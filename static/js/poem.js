@@ -69,22 +69,48 @@
 	     * Handling for the selection of the base texts for collation
 	     *
 	     */
-	    $('.input-base-text').click(function(event) {
+	    $('.input-base-text').change(function(event) {
+		    // This also shouldn't be enabled through any other means
+		    /*
+		    if( $(this).prop('disabled') ) {
+			event.preventDefault();
+		    }
+		    */
+
 		    // Disable the selection for the other base texts
 		    $('.input-base-text').not($(this)).prop('disabled',  $(this).prop('checked'));
 
 		    // Disable the selection for this text as a variant text
 		    $('.input-variant[value="' + $(this).val() + '"]').prop('disabled',  $(this).prop('checked'));
 		});
-	    $('.input-variant').click(function(event) {
-		    $('.input-base-text[value="' + $(this).val() + '"]').prop('disabled',  $(this).prop('checked'));
-		});
 
 	    /**
-	     * Initialize the form with fuly-enabled checkboxes
+	     * Handling for the selection of variant texts for collation
+	     *
+	     */
+	    $('.input-variant').change(function(event) {
+		    // This also shouldn't be enabled through any other means
+		    /*
+		    if( $(this).prop('disabled') ) {
+			event.preventDefault();
+		    }
+		    */
+
+		    // Disable the selection for this text as a base text
+		    $('.input-base-text[value="' + $(this).val() + '"]').prop('disabled',  $(this).prop('checked'));
+		});
+	    
+	    /**
+	     * Initialize the form with fully-enabled checkboxes
 	     *
 	     */
 	    $('.input-base-text, .input-variant').prop('disabled',  false);
+
+	    /**
+	     * For the rendering of part of speech tags
+	     *
+	     */
+	    
 
 	});
 }(jQuery));

@@ -1,0 +1,18 @@
+	  {% for headnote_index, headnote_diffs in enumerate(collation.headnotes) %}
+		<tr>
+		  <td><a href="/">{{ collation.base_text.id }}</a></td>
+		  <td class="index">Headnote {{ headnote_index + 1 }}</td>
+		  {% for token in headnote_diffs.base_line.tokens %}
+		    {% module Token(token) %}
+		  {% end %}
+		</tr>
+		{% for headnote_diff in headnote_diffs.variant_lines %}
+		<tr>
+		  <td><a href="/">{{ headnote_diff.id }}</a></td>
+		  <td class="index">Headnote {{ headnote_index + 1 }}</td>
+		  {% for token in headnote_diff.tokens %}
+		    {% module Token(token) %}
+		  {% end %}
+		</tr>
+		{% end %}
+	  {% end %}

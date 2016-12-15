@@ -1,0 +1,18 @@
+	  {% for title_index, title_diffs in enumerate(collation.titles) %}
+		<tr>
+		  <td><a href="/">{{ collation.base_text.id }}</a></td>
+		  <td class="index">Title {{ title_index + 1 }}</td>
+		  {% for token in title_diffs.base_line.tokens %}
+		    {% module Token(token) %}
+		  {% end %}
+		</tr>
+		{% for title_diff in title_diffs.variant_lines %}
+		<tr>
+		  <td><a href="/">{{ title_diff.id }}</a></td>
+		  <td class="index">Title {{ title_index + 1 }}</td>
+		  {% for token in title_diff.tokens %}
+		    {% module Token(token) %}
+		  {% end %}
+		</tr>
+		{% end %}
+	  {% end %}

@@ -40,7 +40,6 @@
 	    });
 	    */
 
-
 	    /**
 	     * Format the data returned from the server
 	     *

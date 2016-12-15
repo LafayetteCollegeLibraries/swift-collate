@@ -9,6 +9,89 @@ from SwiftDiff.text import Line, Text
 from SwiftDiff.collate import DifferenceText, Collation
 from SwiftDiff.tokenize import Tokenizer, SwiftSentenceTokenizer
 
+# Retrieve the database
+config = ConfigParser.RawConfigParser()
+config.read( os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'swift_collate.cfg')  )
+    
+host = config.get('MongoDB', 'host')
+port = config.getint('MongoDB', 'port')
+client = MongoClient(host, port)
+
+# Retrieve the server configuration
+tei_dir_path = config.get('server', 'tei_dir_path')
+
+import sys, traceback
+
+@task
+def validate_manuscript(dir_path, file_path):
+    """Validate that an encoded manuscript can be collated
+
+    """
+
+    tei_source_dir_path = os.path.join(os.path.dirname(os.path.abspath(tei_dir_path)), 'sources')
+    text_path = os.path.join(tei_source_dir_path, dir_path, file_path + '.tei.xml')
+    file_doc = Tokenizer.parse_text(text_path)
+
+    if file_doc is None:
+        print "Failed to parse " + text_path
+    try:
+        Text(file_doc, 'validate', SwiftSentenceTokenizer)
+        print "Successfully parsed " + text_path
+    except Exception as e:
+        print "Failed to encode " + text_path
+        print "Error: %s" % str(e)
+        print "Trace: %s" % traceback.format_exc()
+
+@task
+def validate_source(dir_path):
+    """Validate that all encoded manuscripts for a given source can be collated
+
+    """
+
+    tei_source_dir_path = os.path.join(os.path.dirname(os.path.abspath(tei_dir_path)), 'sources')
+
+    # Iterate for each manuscript
+    for file_path in os.listdir(os.path.join(os.path.abspath(tei_source_dir_path), dir_path)):
+
+        text_path = os.path.join(tei_source_dir_path, dir_path, file_path)
+        file_doc = Tokenizer.parse_text(text_path)
+
+        if file_doc is None:
+            print "Failed to parse " + text_path
+        try:
+            Text(file_doc, 'validate', SwiftSentenceTokenizer)
+            # print "Successfully parsed " + text_path
+        except Exception as e:
+            print "Failed to encode " + text_path
+            print "Error: %s" % str(e)
+            print "Trace: %s" % traceback.format_exc()
+
+@task
+def validate_sources():
+    """Validate that all encoded manuscripts for all sources can be collated
+
+    """
+
+    tei_source_dir_path = os.path.join(os.path.dirname(os.path.abspath(tei_dir_path)), 'sources')
+
+    for(path, dirs, files) in os.walk(tei_source_dir_path):
+        for dir_path in dirs:
+            for file_path in os.listdir(os.path.join(os.path.abspath(tei_source_dir_path), dir_path)):
+
+                text_path = os.path.join(tei_source_dir_path, dir_path, file_path)
+                file_doc = Tokenizer.parse_text(text_path)
+
+                if file_doc is None:
+                    print "Failed to parse " + text_path                    
+                    continue
+                try:
+                    Text(file_doc, 'validate', SwiftSentenceTokenizer)
+                    # print "Successfully parsed " + text_path
+                except Exception as e:
+                    print "Failed to encode " + text_path
+                    print "Error: %s" % str(e)
+                    print "Trace: %s" % traceback.format_exc()
+
 # @todo Deduplicate
 def doc_uris(poem_id, transcript_ids = []):
     """Retrieve the transcript file URI's for any given poem
@@ -77,13 +160,6 @@ def resolve(uri, update=False):
 
     return result
 
-# Retrieve the database
-config = ConfigParser.RawConfigParser()
-config.read( os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'swift_collate.cfg')  )
-    
-host = config.get('MongoDB', 'host')
-port = config.getint('MongoDB', 'port')
-client = MongoClient(host, port)
 
 def cache(collection_name, key, value=None):
 

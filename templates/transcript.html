@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid row" ng-controller="TranscriptController" data-spy="scroll" data-target="transcript-sidebar">
+  <div class="container-fluid col-xs-11">
+    <div id="tei"></div>
+  </div>
+</div>
+<script src="{{ static_url('js/CETEI.js') }}"></script>
+<script>
+  var CETEIcean = new CETEI();
+  CETEIcean.getHTML5("/tei/{{ transcript_id }}", function(data) {
+    document.getElementById("tei").innerHTML = "";
+    document.getElementById("tei").appendChild(data);
+    CETEIcean.addStyle(document, data);
+  });
+</script>
+{% end %}

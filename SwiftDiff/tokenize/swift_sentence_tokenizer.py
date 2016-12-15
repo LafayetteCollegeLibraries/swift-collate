@@ -11,13 +11,11 @@ class SwiftSentenceTokenizer(object):
 
         # For handling cases related to non-breaking spaces inserted within strings (e. g. "I 'd")
         # Please see SPP-269
-        value = re.sub(r"(.)[\s ]('.)", "\\1\\2", value)
+        # value = re.sub(r"(.)[\s ]('.)", "\\1\\2", value)
+        pattern = r"([a-zA-Z0-9])[\s ]('.)"
+        value = re.sub(pattern, "\\1\\2", value)
 
-        # tokens = value.split()
         tokens = []
-
-        
-
         for token in value.split():
 
 #            if re.match(r'.*<.+?>.*', token):

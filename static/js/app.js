@@ -8,10 +8,9 @@
 //angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket', 'ui.select'])
 angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
     .factory('Stream', function($websocket, $rootScope, $q) {
-	    // Open a WebSocket connection
-	    var dataStream = $websocket('ws://santorini0.stage.lafayette.edu/collate/stream');
-	    //var dataStream = $websocket('wss://santorini0.stage.lafayette.edu/collate/stream');
 
+	    // Open a WebSocket connection
+	    var dataStream = $websocket('wss://' + window.location.hostname + '/stream');
 	    var data = "";
 
 	    /*
@@ -87,7 +86,8 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 		var params = { poem: $scope.poem,
 			       baseText: $scope.baseText,
 			       variants: $scope.variants,
-			       tokenizer: $scope.tokenizer };
+			       tokenizer: $scope.tokenizer,
+			       tagger: $scope.tagger };
 
 		/*
 		// Work-around
@@ -105,6 +105,9 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 		Stream.send(params);
 	    };
 	})
+    .controller('TranscriptController', function ($scope) {
+	    $('[data-toggle="popover"]').popover();
+	})
     .controller('FormController', function ($scope, Stream) {
 
 	    /**
@@ -121,16 +124,18 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	    // By default, the variants should be populated
 	    // @todo Populate this from a server endpoint
 	    var variants = {};
-
-	    $('input[type="checkbox"][name="variants"]').each(function(i) {
+	    $('input[type="checkbox"][name="variants"]:checked').each(function(i) {
 		    variants[$(this).val()] = $(this).val();
 		    //$(this).prop('checked', true);
 		});
 
-	    $scope.allVariants = variants;
+	    //$scope.allVariants = variants;
+	    $scope.variants = variants;
 
-	    // Work-around
+	    // Work-arounds
+	    $scope.mode = 'notaBene';
 	    $scope.tokenizer = 'SwiftSentenceTokenizer';
+	    $scope.tagger = 'disabled';
 	    
 	    $scope.requestCollation = function(event) {
 		event.preventDefault();
@@ -138,7 +143,9 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 		var params = { poem: $scope.poem,
 			       baseText: $scope.baseText,
 			       variants: $scope.variants,
-			       tokenizer: $scope.tokenizer };
+			       mode: $scope.mode,
+			       tokenizer: $scope.tokenizer,
+			       tagger: $scope.tagger };
 		/*
 		// Work-around
 		var variants = $scope.variants;
@@ -157,4 +164,44 @@ angular.module('swiftCollate', ['ngSanitize', 'ngWebSocket'])
 	    $scope.resetCollation = function(event) {
 		$("#collation-content").empty();
 	    };
+	})
+    .controller('SearchController', function($scope) {
+
+	    /**
+	     * Format the data returned from the server
+	     *
+	     */
+	    function formatData (data) {
+		var markup = "" + data + "";
+		return markup;
+	    };
+
+	    /**
+	     * Format the data selected within the widget
+	     *
+	     */
+	    function formatDataSelection (data) {
+		return data;
+	    };
+
+	    var pathname = window.location.pathname;
+
+	    $.get('/suggest/poems', function(response) {
+		    
+		    var data = JSON.parse(response);
+
+		    $.each(data.items, function(i, e) {
+			    $("#poems-select2").append('<option value="' + e + '">' + e + '</option>');
+			});
+		});
+
+	    $("#poems-select2").select2({
+		    placeholder: "Browse by Poem ID",
+		    allowClear: true,
+	    }).on("select2:select", function(event) {
+		    var slug = $(event.target).val();
+
+		    // Redirect the user to the appropriate Poem
+		    window.location.assign('/poems/' + slug);
+		});
 	});

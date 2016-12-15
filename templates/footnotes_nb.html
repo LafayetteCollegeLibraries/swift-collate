@@ -1,0 +1,20 @@
+	  {% for line_index, line_list in collation.footnotes.iteritems() %}
+
+	    <h2>Footnotes for {{ line_index }}</h2>
+
+	    <h3>Footnote Tokens</h3>
+	    <table class="table">
+	      <thead>
+		<th>Witness</th>
+	      </thead>
+	      
+	      <tbody>
+
+		{% for lines in line_list %}
+		{% for line_values in lines.witnesses %}
+		    {% module Footnote(line_values) %}
+		{% end %}
+		{% end %}
+	      </tbody>
+	    </table>
+	  {% end %}

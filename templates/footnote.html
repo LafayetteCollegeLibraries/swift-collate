@@ -1,0 +1,8 @@
+		<tr>
+		  <td><a href="{{ line_values['line'].uri }}"> {{ line_values['id'] }} </a></td>
+		  <td>Footnote</td>
+
+		  {% for token in line_values['line'].tokens %}
+		    {% module Token(token) %}
+		  {% end %}
+		</tr>

@@ -43,10 +43,100 @@ class Tokenizer:
         return elem
 
     @staticmethod
+    def clean(data):
+        """Clean the data from a TEI Document
+
+        :param data: The raw XML from the TEI Document.
+        :type data: str.
+        """
+
+        #data = re.search(r'«MDUL»', 'hi rend="underline"')
+        #return data
+
+        mode_code_pattern = re.compile('<«MDUL»>', re.M)
+        data = re.sub(mode_code_pattern, '<hi rend="underline">', data)
+        mode_code_pattern = re.compile('</«MDUL»>', re.M)
+        data = re.sub(mode_code_pattern, '</hi>', data)
+
+        # <«MDSD»>
+        mode_code_pattern = re.compile('<«MDSD»>', re.M)
+        data = re.sub(mode_code_pattern, '', data)
+        mode_code_pattern = re.compile('</«MDSD»>', re.M)
+        data = re.sub(mode_code_pattern, '', data)
+
+        # <«MDSU»>
+        mode_code_pattern = re.compile('<«MDSU»>', re.M)
+        data = re.sub(mode_code_pattern, '', data)
+        mode_code_pattern = re.compile('</«MDSU»>', re.M)
+        data = re.sub(mode_code_pattern, '', data)
+
+        # «FN1·
+        mode_code_pattern = re.compile('<«FN1·>', re.M)
+        data = re.sub(mode_code_pattern, '<note place="foot">', data)
+        mode_code_pattern = re.compile('</«FN1·>', re.M)
+        data = re.sub(mode_code_pattern, '</note>', data)
+
+        return data
+
+    @staticmethod
+    def parse_content(data):
+
+        data = Tokenizer.clean(data)
+        
+        try:
+            doc = etree.fromstring(data)
+            elems = doc.xpath('//tei:text', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            elem = elems.pop()
+
+            # Append the <title> elements for the purposes of analysis
+            title_elems = doc.xpath('//tei:title', namespaces={'tei': 'http://www.tei-c.org/ns/1.0'})
+            elem.extend(title_elems)
+        except Exception as ex:
+            print ex.message
+            return None
+        return elem
+
+    @staticmethod
     def parse_text(resource):
 
         response = urllib.urlopen(resource)
         data = response.read()
+
+        # @todo Identify where this fails
+        # data = clean(data)
+#        if resource == '/var/lib/spp/tei/sources/0202/640-0202.tei.xml':
+
+#            print resource
+        mode_code_pattern = re.compile('<«MDUL»>', re.M)
+        data = re.sub(mode_code_pattern, '<hi rend="underline">', data)
+        mode_code_pattern = re.compile('</«MDUL»>', re.M)
+        data = re.sub(mode_code_pattern, '</hi>', data)
+
+        # <«MDSD»>
+        mode_code_pattern = re.compile('<«MDSD»>', re.M)
+        data = re.sub(mode_code_pattern, '', data)
+        mode_code_pattern = re.compile('</«MDSD»>', re.M)
+        data = re.sub(mode_code_pattern, '', data)
+
+        # <«MDSU»>
+        mode_code_pattern = re.compile('<«MDSU»>', re.M)
+        data = re.sub(mode_code_pattern, '', data)
+        mode_code_pattern = re.compile('</«MDSU»>', re.M)
+        data = re.sub(mode_code_pattern, '', data)
+
+        # «FN1·
+        mode_code_pattern = re.compile('<«FN1·>', re.M)
+        data = re.sub(mode_code_pattern, '<note place="foot">', data)
+        mode_code_pattern = re.compile('</«FN1·>', re.M)
+        data = re.sub(mode_code_pattern, '</note>', data)
+
+        #
+        # xml:id="spp-545-07G1-footnote-headnote-2"
+#        mode_code_pattern = re.compile(' xml:id=".+?"', re.M)
+#        data = re.sub(mode_code_pattern, '', data)
+
+#        mode_code_pattern = re.compile(' target=".+?"', re.M)
+#        data = re.sub(mode_code_pattern, '', data)
 
         try:
             doc = etree.fromstring(data)
