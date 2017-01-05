@@ -79,13 +79,11 @@ class NotaBeneGDriveStore(NotaBeneStore):
         query = "name contains '" + source_id + "'"
 
         for item in self._service.items(query):
-            # print('{0} ({1})'.format(item['name'], item['id']))
             word_doc_match = re.search('\.doc$', item['name'], flags=re.IGNORECASE)
             if not word_doc_match:
                 fh = self._service.file(item['id'])
                 drive_file_content = fh.getvalue()
                 drive_files.append(drive_file_content)
-                # print drive_file_content
                 fh.close()
 
         return drive_files
@@ -100,7 +98,6 @@ class NotaBeneGDriveStore(NotaBeneStore):
             fh = self._service.file(item['id'])
             drive_file_content = fh.getvalue()
             drive_files.append(drive_file_content)
-            # print drive_file_content
             fh.close()
 
         try:
@@ -172,7 +169,6 @@ class NotaBeneEncoder(object):
                 except:
                     pass
 
-#        print response.text
 #        tei_objects = json.loads(response.text)
 #        tei_docs = map(lambda tei_object: etree.fromstring(tei_object), tei_objects)
         return [transcript_ids,tei_docs]
@@ -656,8 +652,6 @@ class BaseCollateHandler(object):
         docs = []
         for transcript_id in self.transcript_ids:
 
-            print transcript_id
-
             transcript = nota_bene_encoder.transcript('001A', transcript_id)
             transcript = transcript.replace('<?xml version="1.0" encoding="utf-8"?>', '')
 
@@ -680,14 +674,15 @@ class BaseCollateHandler(object):
             pass
 
         # Update the response body
+
         # self.response_body = map(lambda item: { 'node': etree.tostring(item['node']), 'id': item['id'], 'message': item['message'] }, self.variant_texts)
         variants = []
 
         for item in self.variant_texts:
-            # Avoid errors in the parse
             if 'node' in item and item['node'] is not None:
                 variants.append({ 'node': etree.tostring(item['node']), 'id': item['id'], 'message': item['message'] })
 
+        # self.variants = variants
         self.response_body = variants
 
     def tokenize(self):
@@ -697,7 +692,13 @@ class BaseCollateHandler(object):
         self.base_text.tokenize()
 
         # Retrieve the variant Texts
-        self.witness_texts = map(lambda witness: Text(witness['node'], witness['id'], self.tokenizer, self.tagger), self.variant_texts)
+        #self.witness_texts = map(lambda witness: Text(witness['node'], witness['id'], self.tokenizer, self.tagger), self.variants)
+
+        # Filter for errors in the parsing of the XML Documents
+        self.witness_texts = []
+        for witness in self.variant_texts:
+            if 'node' in witness and witness['node'] is not None:
+                self.witness_texts.append( Text(witness['node'], witness['id'], self.tokenizer, self.tagger) )
 
         # Update the response body
         self.response_body = map(lambda witness_text: TextJSONEncoder().encode(witness_text), self.witness_texts)
@@ -712,26 +713,11 @@ class BaseCollateHandler(object):
         except Exception as collateEx:
             raise Exception("Could not collate: " + str(collateEx) + traceback.format_exc())
 
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
-import ssl
-class TLSv1Adapter(HTTPAdapter):
-    def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(num_pools=connections,
-                                       maxsize=maxsize,
-                                       block=block,
-                                       ssl_version=ssl.PROTOCOL_TLSv1)
-
 class CollateHandler(CorsMixin, tornado.web.RequestHandler, BaseCollateHandler):
     CORS_ORIGIN = '*'
     CORS_HEADERS = 'Content-Type'
 
     def post(self):
-
-        s = requests.Session()
-        s.mount('https://', TLSv1Adapter())
-        nota_bene_store = NotaBeneGDriveStore(CLIENT_SECRET_FILE, SCOPES)
-        nota_bene_encoder = NotaBeneEncoder(url = 'http://localhost:9292/transcripts')
 
         if self.request.headers.get('Accept') == 'application/json':
             self.json_args = json.loads(self.request.body)
