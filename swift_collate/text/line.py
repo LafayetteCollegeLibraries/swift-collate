@@ -1,8 +1,6 @@
 import nltk
 from nltk.tag import pos_tag
 nltk.download('maxent_treebank_pos_tagger')
-import numpy
-
 import string
 import json
 
@@ -15,6 +13,7 @@ class Line(object):
         self.value = value
         self.index = index
         self.tokens = []
+        self.unaligned_tokens = []
         self.tokenizer = tokenizer()
         self.tagger = tagger
         self.classes = classes
@@ -77,6 +76,7 @@ class Line(object):
                 token = Token(token_value, token_index, token_classes, token_markup, None)
 
             self.tokens.append(token)
+            self.unaligned_tokens = self.tokens
 
 class FootnoteLine(Line):
 

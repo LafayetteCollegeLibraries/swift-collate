@@ -5,7 +5,6 @@ from line import Line, FootnoteLine, LineJSONEncoder
 from lxml import etree
 import json
 
-
 class TextEntity(object):
 
     def __init__(self):
@@ -45,7 +44,6 @@ class Text(object):
         }
 
     EDITORIAL_MARKUP_TAGS = ['unclear', 'add', 'del', 'subst', 'sic', 'gap']
-#    EDITORIAL_MARKUP_TAGS = ['unclear', 'add', 'del', 'subst', 'sic']
     EDITORIAL_MARKUP = {
 
         'unclear': {
@@ -348,7 +346,7 @@ class Text(object):
             line_value = line_values['text']
             line_markup = line_values['markup']
             line_classes = line_values['classes']
-            line_index = element.get('{%s}id' % 'http://www.w3.org/XML/1998/namespace')
+            line_index = self.id
 
             line = Line(line_value, line_index, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
 
@@ -368,7 +366,8 @@ class Text(object):
             line_value = line_values['text']
             line_markup = line_values['markup']
             line_classes = line_values['classes']
-            line_index = element.get('n')
+            # line_index = element.get('n')
+            line_index = self.id
 
             line = Line(line_value, line_index, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
 
@@ -387,7 +386,8 @@ class Text(object):
             line_value = line_values['text']
             line_markup = line_values['markup']
             line_classes = line_values['classes']
-            line_index = element.get('n')
+            # line_index = element.get('n')
+            line_index = self.id
 
             line = Line(line_value, line_index, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
 
@@ -407,7 +407,9 @@ class Text(object):
             line_value = line_values['text']
             line_markup = line_values['markup']
             line_classes = line_values['classes']
-            footnote_index = element.get('n')
+
+            footnote_index = self.id
+
             distance_from_parent = 0
 
             # Retrieve the target for the footnote using the neighboring <ref>

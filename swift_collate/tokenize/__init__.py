@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from nltk.tokenize.punkt import PunktWordTokenizer
-# from nltk.tokenize import TreebankWordTokenizer
 import networkx as nx
 import re
 import nltk
@@ -103,10 +102,6 @@ class Tokenizer:
         data = response.read()
 
         # @todo Identify where this fails
-        # data = clean(data)
-#        if resource == '/var/lib/spp/tei/sources/0202/640-0202.tei.xml':
-
-#            print resource
         mode_code_pattern = re.compile('<«MDUL»>', re.M)
         data = re.sub(mode_code_pattern, '<hi rend="underline">', data)
         mode_code_pattern = re.compile('</«MDUL»>', re.M)
@@ -731,8 +726,6 @@ class Tokenizer:
     # Generates a tree structuring the differences identified within two given TEI Documents
     @staticmethod
     def diff(node_u, text_u_id, node_v, text_v_id):
-
-        # print "Comparing {0} to {1}".format(text_u_id, text_v_id)
 
         # Each node serves as a <tei:text> element for the text being compared
         tree_u = Tokenizer.text_tree(node_u, text_u_id)

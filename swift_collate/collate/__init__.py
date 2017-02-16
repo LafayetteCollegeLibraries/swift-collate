@@ -2,6 +2,7 @@ import fnmatch
 import os
 import json
 
+from difference_set import AlignmentException
 from difference_text import DifferenceText, DifferenceTextJSONEncoder
 from difference_line import DifferenceLineJSONEncoder
 
@@ -11,9 +12,7 @@ class CollatedTexts:
         self.lines = {}
 
     def line(self, line_id):
-
         if not line_id in self.lines:
-
             self.lines[line_id] = { 'line': None }
 
         return self.lines[line_id]
@@ -49,10 +48,7 @@ class CollatedLines:
         """
 
         witness_value = self.witness(witness_id)
-        print witness_value
-
         witness_value['line'] = diff_line
-        print witness_value
 
     def witness(self, witness_id):
         """Retrieve the witness structure for any given ID
@@ -106,22 +102,11 @@ class Collation:
         self.title_footnotes = []
         self.footnotes = {}
         self.witnesses = []
-
-        # dicts cannot be ordered
         self._title_footnote_index = {}
         self._footnote_index = {}
         self._witness_index = {}
 
         self.tei_dir_path = tei_dir_path
-
-        # Alignment must take place at this level
-#        for diff in diffs:
-
-            # Align the lines within the tokens
-#            for line_id, diff_line in diff.body.lines.iteritems():
-
-#                print diff_line.tokens
-#                print diff_line.base_line.tokens
 
         for diff in diffs:
 
@@ -156,30 +141,9 @@ class Collation:
                 diff_line.uri = uri_base + '/' + diff.other_text.id
 
                 # Attempt to provide basic linking for the footnotes
-                #
                 footnote_line_index = line_key
-#                line_values = line_key.split('#')
-#                if len(line_values) == 3:
-
-#                    index, target, distance = line_values
-#                    target_segments = target.split('-')
-
-#                    if len(target_segments) == 2:
-
-#                        target_index = target_segments[-1]
-
-                        # Retrieve the type of structure
-#                        target_structure = target_segments[-2]
-
-#                        diff_line.position = distance + ' characters into ' + target_structure + ' ' + target_index
-#                    else:
-#                        print 'The target for the footnote link could not be parsed: ' + ', '.join(target_segments)
-#                else:
-#                    print 'The key for the footnote link could not be parsed: ' + ', '.join(line_values)
 
                 # Collated footnote line tokens
-                #
-                # CollatedLines
                 footnote_lines = self.footnote_line(footnote_line_index)
                 footnote_lines.insert(diff_line, diff.other_text.id)
                 self.footnotes[footnote_line_index].append( footnote_lines )
@@ -188,40 +152,16 @@ class Collation:
             for line_id, diff_line in diff.body.lines.iteritems():
                 diff_line.uri = uri_base + '/' + diff.other_text.id
 
-                print 'ID for the base line: '
-                print diff.base_text.id
-                print 'ID for the line: '
-                print diff.other_text.id
-
-                # print 'Structuring collated lines'
-                # print diff_line.base_line.value
-
-                # print diff_line.value
-
-                # self.body_line(line_id).witness(diff.base_text.id)['line'] = diff_line
                 base_witness = self.body_line(line_id).witness(diff.base_text.id)
                 base_witness['line'] = diff_line
                 other_witness = self.body_line(line_id).witness(diff.other_text.id)
                 other_witness['line'] = diff_line
 
-                # self.witness(diff.other_text.id).line(line_id)['line'] = diff_line
                 other_line = self.witness(diff.other_text.id).line(line_id)
                 other_line['line'] = diff_line
                 base_line = self.witness(diff.base_text.id).line(line_id)
                 base_line['line'] = diff_line
 
-                # collated_lines = self.body_line(line_id)
-                # collated_lines.witnesses.append(diff_line)
-
-                # diff_line.uri = uri_base + '/' + diff.base_text.id
-                # collated_lines.witnesses.append(diff_line)
-
-                print 'Collated lines for ' + str(line_id)
-                print self.body[line_id].witnesses
-                for witness in self.body[line_id].witnesses:
-                    print witness['line']
-
-    #
     def title_footnote_line(self, line_id):
         """Sets and retrieves the set of collated lines for a footnote in the base text
     
@@ -288,16 +228,6 @@ class Collation:
         :returns:  CollatedLines -- the set of collated lines for the footnotes.
 
         """
-
-        # Retrieve the index for the footnote id
-#        index = self.footnote_index(line_id)
-
-#        if index >= len(self.footnotes) - 1:
-#            self.footnotes[index] = CollatedLines()
-#        if index >= len(self.footnotes) - 1:
-#            self.footnotes[index] = CollatedLines()
-
-#        return self.footnotes[index]
 
         footnotes_in_line = self.footnote_lines(line_id)
         if len(footnotes_in_line) == 0:
@@ -383,7 +313,6 @@ class CollationJSONEncoder(json.JSONEncoder):
         if isinstance(obj, Collation):
             return {
                 'titles': map(lambda item: { item[0]: json.loads(CollatedLinesJSONEncoder().encode(item[1])) }, obj.titles.iteritems()),
-#                'title_footnotes': obj.title_footnotes,
                 'headnotes': map(lambda item: { item[0]: json.loads(CollatedLinesJSONEncoder().encode(item[1])) }, obj.headnotes.iteritems()),
                 'body': map(lambda item: { item[0]: json.loads(CollatedLinesJSONEncoder().encode(item[1])) }, obj.body.iteritems()),
                 'footnotes': map(lambda element: CollatedLinesJSONEncoder().encode(element), obj.footnotes)

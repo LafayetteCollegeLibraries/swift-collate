@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from nltk.tokenize.punkt import PunktWordTokenizer
-# from nltk.tokenize import TreebankWordTokenizer
 import networkx as nx
 import re
 import nltk
