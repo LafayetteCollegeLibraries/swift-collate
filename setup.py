@@ -16,4 +16,6 @@ setup(
         'nltk>=3.2.2',
         'lxml>=3.7.2',
         'collatex==2.0.0rc9'
-    ])
+    ],
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest'])
