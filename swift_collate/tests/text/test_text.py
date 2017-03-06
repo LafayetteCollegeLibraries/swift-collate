@@ -7,7 +7,7 @@ import pytest
 @pytest.fixture
 def tei_601_14W2():
 
-    file_path = os.path.join('tests','fixtures','601-14W2.tei.xml')
+    file_path = os.path.join('swift_collate', 'tests','fixtures','601-14W2.tei.xml')
     doc = etree.parse(file_path)
     return doc
 

@@ -8,21 +8,21 @@ import pytest
 @pytest.fixture
 def tei_601_14W2():
 
-    file_path = os.path.join('tests','fixtures','601-14W2.tei.xml')
+    file_path = os.path.join('swift_collate', 'tests','fixtures','601-14W2.tei.xml')
     doc = etree.parse(file_path)
     return doc
 
 @pytest.fixture
 def tei_601_083Y():
 
-    file_path = os.path.join('tests','fixtures','601-083Y.tei.xml')
+    file_path = os.path.join('swift_collate', 'tests','fixtures','601-083Y.tei.xml')
     doc = etree.parse(file_path)
     return doc
 
 @pytest.fixture
 def tei_601_0853():
 
-    file_path = os.path.join('tests','fixtures','601-0853.tei.xml')
+    file_path = os.path.join('swift_collate','tests','fixtures','601-0853.tei.xml')
     doc = etree.parse(file_path)
     return doc
 
@@ -40,12 +40,3 @@ def test_merge():
     variant_text_0853 = Text(tei_601_0853(), '601-0853', SwiftSentenceTokenizer)
 
     base_diff_text = DifferenceText(base_text, [], SwiftSentenceTokenizer)
-
-#    diff_text_a = DifferenceText(base_text, [variant_text_083Y], SwiftSentenceTokenizer)
-#    diff_text_b = DifferenceText(base_text, [variant_text_0853], SwiftSentenceTokenizer)
-
-#    base_diff_text.merge(diff_text_a)
-#    assert base_diff_text.base_text == base_text
-
-#    base_diff_text.merge(diff_text_b)
-#    assert base_diff_text.base_text == base_text
