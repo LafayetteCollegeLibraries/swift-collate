@@ -349,6 +349,7 @@ class Text(object):
             line_index = self.id
 
             line = Line(line_value, line_index, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
+            line.tokenize()
 
             self.titles.lines.append( line )
 
@@ -370,6 +371,7 @@ class Text(object):
             line_index = self.id
 
             line = Line(line_value, line_index, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
+            line.tokenize()
 
             self.headnotes.lines.append( line )
 
@@ -390,6 +392,7 @@ class Text(object):
             line_index = self.id
 
             line = Line(line_value, line_index, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
+            line.tokenize()
 
             self.body.lines.append( line )
 
@@ -469,6 +472,7 @@ class Text(object):
                     distance_from_parent = len(element.getparent().text)
 
             line = FootnoteLine(line_value, footnote_index, footnote_ref, distance_from_parent, tokenizer=self.tokenizer, tagger=self.tagger, classes=line_classes, markup=line_markup)
+            line.tokenize()
 
             self.footnotes.lines[footnote_ref] = line
 
@@ -486,12 +490,17 @@ class TextJSONEncoder(json.JSONEncoder):
     def default(self, obj):
 
         if isinstance(obj, Text):
+            footnotes = {}
+            for k,line in obj.footnotes.lines.iteritems():
+                # 'footnotes':  map(lambda line: LineJSONEncoder().encode(line), obj.footnotes.lines)
+                footnotes[k] = LineJSONEncoder().encode(line)
+            
             return {
                 'id': obj.id,
-                'titles':  map(lambda line: LineJSONEncoder().encode(line), obj.titles.lines) ,
-                'title_footnotes':  map(lambda line: LineJSONEncoder().encode(line), obj.title_footnotes.lines) ,
-                'headnotes':  map(lambda line: LineJSONEncoder().encode(line), obj.headnotes.lines) ,
-                'body':  map(lambda line: LineJSONEncoder().encode(line), obj.body.lines) ,
-                'footnotes':  map(lambda line: LineJSONEncoder().encode(line), obj.footnotes.lines)
+                'titles':  map(lambda line: LineJSONEncoder().encode(line), obj.titles.lines),
+                'title_footnotes':  map(lambda line: LineJSONEncoder().encode(line), obj.title_footnotes.lines),
+                'headnotes':  map(lambda line: LineJSONEncoder().encode(line), obj.headnotes.lines),
+                'body':  map(lambda line: LineJSONEncoder().encode(line), obj.body.lines),
+                'footnotes': footnotes
                 }
         return json.JSONEncoder.default(self, obj)

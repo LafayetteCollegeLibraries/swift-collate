@@ -1,7 +1,5 @@
-
-import nltk
+from nltk.metrics import distance as nltk_distance
 import json
-# from ..text import Token, TokenJSONEncoder
 from ..text import Token
 
 class DifferenceToken(Token):
@@ -17,7 +15,7 @@ class DifferenceToken(Token):
 
     def find_distance(self):
 
-        self.distance = nltk.metrics.distance.edit_distance(self.base_token.value, self.value)
+        self.distance = nltk_distance.edit_distance(self.base_token.value, self.value)
         return self.distance
 
 # This needs to be removed, and the circular dependency issue resolved

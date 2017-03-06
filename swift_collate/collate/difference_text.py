@@ -30,15 +30,12 @@ class DifferenceText(object):
 
         # Iterate through each title
         for title_line_index, title_line in enumerate(base_text.titles.lines):
-
             title_diffs = DifferenceSet(title_line, [], tokenizer=self.tokenizer, tagger=self.tagger)
 
             # Iterate through the titles for each variant text
             # Iterate through each text
             for other_text in self.other_texts:
-
                 if len(other_text.titles.lines) - 1 >= title_line_index:
-
                     variant_title = other_text.titles.lines[title_line_index]
                     title_diffs.add_variant_line(variant_title, other_text.id)
 
@@ -223,7 +220,7 @@ class DifferenceText(object):
 
         collation_witnesses = [ self.base_text ].extend(self.other_texts)
         witnesses = []
-        collation = Collation()
+
 
         self.collate_titles()
         self.collate_headnotes()
@@ -238,7 +235,6 @@ class DifferenceText(object):
             old_title_diff = self.titles[title_line_index]
 
             # Add all of the variant lines for the new DifferenceText
-#            old_title_diff.variant_lines.extend(new_title_diff.variant_lines)
             for new_variant_title in new_title_diff.variant_lines:
                 old_title_diff.variant_lines.append(new_variant_title)
 
@@ -251,7 +247,6 @@ class DifferenceText(object):
             old_headnote_diff = self.headnotes[headnote_line_index]
 
             # Add all of the variant lines for the new DifferenceText
-            # old_headnote_diff.variant_lines.extend(new_headnote_diff.variant_lines)
             for new_variant_headnote in new_headnote_diff.variant_lines:
                 old_headnote_diff.variant_lines.append(new_variant_headnote)
 
@@ -264,7 +259,6 @@ class DifferenceText(object):
             old_line_diff = self.body[line_index]
 
             # Add all of the variant lines for the new DifferenceText
-            # old_line_diff.variant_lines.extend(new_line_diff.variant_lines)
             for new_variant_line in new_line_diff.variant_lines:
                 old_line_diff.variant_lines.append(new_variant_line)
 
@@ -277,7 +271,6 @@ class DifferenceText(object):
             old_footnote_diff = self.footnotes[footnote_line_ref]
 
             # Add all of the variant lines for the new DifferenceText
-            # old_footnote_diff.variant_lines.extend(new_footnote_diff.variant_lines)
             for new_variant_footnote in new_footnote_diff.variant_lines:
                 old_footnote_diff.variant_lines.append(new_variant_footnote)
 

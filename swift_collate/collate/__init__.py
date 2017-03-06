@@ -5,6 +5,10 @@ import json
 from difference_set import AlignmentException
 from difference_text import DifferenceText, DifferenceTextJSONEncoder
 from difference_line import DifferenceLineJSONEncoder
+from collation import Collation
+from collated_lines import CollatedLines
+from collated_line import CollatedLine
+from collated_token import CollatedToken
 
 class CollatedTexts:
 
@@ -17,7 +21,7 @@ class CollatedTexts:
 
         return self.lines[line_id]
 
-class CollatedLines:
+class CollatedLinesDeprecated:
 
     def __init__(self):
 
@@ -62,7 +66,8 @@ class CollatedLines:
 
         return self.witnesses[witness_index]
 
-class Collation:
+
+class CollationDeprecated:
 
     def transcript_path(self, transcript_id):
         if self.transcript_id is None:

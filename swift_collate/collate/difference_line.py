@@ -1,4 +1,4 @@
-import nltk
+from nltk.metrics import distance as nltk_distance
 from ..text import Line, Token, LineJSONEncoder
 from difference_token import DifferenceToken, DifferenceTokenJSONEncoder
 import json
@@ -16,7 +16,7 @@ class DifferenceLine(Line):
 
     def find_distance(self, base_line, other_line):
 
-        distance = nltk.metrics.distance.edit_distance(base_line.value, other_line.value)
+        distance = nltk_distance.edit_distance(base_line.value, other_line.value)
         return distance
 
     def tokenize(self, retokenize = True):

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from nltk.tokenize.punkt import PunktWordTokenizer
+# from nltk.tokenize.punkt import PunktWordTokenizer
+# from nltk.tokenize.punkt import PunktSentenceTokenizer
+from nltk.tokenize import TreebankWordTokenizer
 import networkx as nx
 import re
 import nltk
@@ -849,8 +851,8 @@ class Tokenizer:
 
                 # Now, add the tokenized texts
                 # Default to the Treebank tokenizer
-                # text_tokenizer = TreebankWordTokenizer()
-                text_tokenizer = PunktWordTokenizer()
+                text_tokenizer = TreebankWordTokenizer()
+                # text_tokenizer = PunktSentenceTokenizer()
 
 #                text_tokens_u = text_tokenizer.tokenize(text_node_u)
 #                text_tokens_u = Tokenizer.clean_tokens(text_tokens_u)

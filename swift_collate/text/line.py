@@ -68,8 +68,6 @@ class Line(object):
                         # line_value = ''.replace(line_value, token_value, '', 1)
             
             # Create the token
-
-
             if token_index in pos_tags:
                 token = Token(token_value, token_index, token_classes, token_markup, pos_tags[token_index][-1])
             else:
@@ -96,6 +94,7 @@ class LineJSONEncoder(json.JSONEncoder):
                 'value': obj.value,
                 'index': obj.index,
                 'tokens': map(lambda token: json.loads(TokenJSONEncoder().encode(token)), obj.tokens),
+                'unaligned_tokens': map(lambda token: json.loads(TokenJSONEncoder().encode(token)), obj.unaligned_tokens),
                 'classes': obj.classes,
                 'markup': obj.markup
                 }

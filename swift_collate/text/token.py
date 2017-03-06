@@ -30,12 +30,23 @@ class Token(object):
 
         return normal_value
 
+    def values(self):
+        return {
+            'value': self.value,
+            'normal_value': self.normal_value,
+            'index': self.index,
+            'classes': self.classes,
+            'markup': self.markup,
+            'distance': self.distance
+        }
+
 class TokenJSONEncoder(json.JSONEncoder):
     def default(self, obj):
 
         if isinstance(obj, Token):
             return {
                 'value': obj.value,
+                'normal_value': obj.normal_value,
                 'index': obj.index,
                 'classes': obj.classes,
                 'markup': obj.markup,
