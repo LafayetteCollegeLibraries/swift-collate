@@ -10,7 +10,7 @@ setup(
     author='James R. Griffin III',
     author_email='griffinj@lafayette.edu',
     url='https://github.com/LafayetteCollegeLibraries/swift-collate',
-    license='GPLv3',
+    license='GPLv3+',
     packages=find_packages(),
     install_requires=[
         'nltk>=3.2.2',
