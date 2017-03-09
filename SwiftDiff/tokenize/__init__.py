@@ -732,8 +732,6 @@ class Tokenizer:
     @staticmethod
     def diff(node_u, text_u_id, node_v, text_v_id):
 
-        # print "Comparing {0} to {1}".format(text_u_id, text_v_id)
-
         # Each node serves as a <tei:text> element for the text being compared
         tree_u = Tokenizer.text_tree(node_u, text_u_id)
         text_u_id = tree_u.name if text_u_id is None else text_u_id

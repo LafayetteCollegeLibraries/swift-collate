@@ -24,71 +24,17 @@ class DifferenceLine(Line):
 
         return distance
 
-    def align_d(self):
-        """Aligns two lines of (potentially) unequal length
-        """
+    def tokenize(self, retokenize = True):
 
-        # Align the tokens
-        base_tokens = self.tokens
-        other_tokens = self.base_line.tokens
+        if retokenize:
+            # Disabling for SPP-651
+            super(DifferenceLine, self).tokenize()
 
-        if len(base_tokens) > len(other_tokens):
+            # This shouldn't need to be invoked
+            # @todo investigate and remove
 
-            # Insert padding at the beginning or end of the sequence
-            empty_tokens = [ Token('', None) ] * (len(base_tokens) - len(other_tokens))
-            while len(empty_tokens) > 0:
-
-                # Don't attempt to match against the entire string
-                # Needleman-Wunsch?
-                # @todo There is probably a library for this
-                if other_tokens[0] == base_tokens[1]:
-                    other_tokens.insert(0, empty_tokens.pop())
-                else:
-                    other_tokens.append(empty_tokens.pop())
-                pass
-        elif len(base_tokens) > len(other_tokens):
-
-            empty_tokens = [ Token('', None) ] * (len(other_tokens) - len(base_tokens))
-            while len(empty_tokens) > 0:
-
-                # empty_tokens.pop()
-                # Don't attempt to match against the entire string
-                # Needleman-Wunsch?
-                # @todo There is probably a library for this
-                if base_tokens[0] == other_tokens[1]:
-                    base_tokens.insert(0, empty_tokens.pop())
-                else:
-                    base_tokens.append(empty_tokens.pop())
-                pass
-        pass
-
-    def align(self):
-        """Aligns two lines of (potentially) unequal length
-        """
-
-        for i, token in enumerate(self._tokens):
-            if i < len(self.base_line.tokens) - 1:
-                if self.base_line.tokens[i + 1].value == self._tokens[i].value:
-                    self._tokens.insert( 0, Token('', None) )
-                    self.base_line.tokens.append( Token('', None) )
-
-        diff_tokens = []
-
-        for token, base_token in zip(self._tokens, self.base_line.tokens):
-            diff_tokens.append(DifferenceToken( base_token, token ))
-
-        self.tokens = diff_tokens
-
-    def tokenize(self):
-
-        # Disabling for SPP-651
-        super(DifferenceLine, self).tokenize()
-
-        # This shouldn't need to be invoked
-        # @todo investigate and remove
-
-        # Disabling for SPP-651
-        self.base_line.tokenize()
+            # Disabling for SPP-651
+            self.base_line.tokenize()
 
         diff_tokens = []
 

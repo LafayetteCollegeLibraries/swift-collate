@@ -15,6 +15,7 @@ class Line(object):
         self.value = value
         self.index = index
         self.tokens = []
+        self.unaligned_tokens = []
         self.tokenizer = tokenizer()
         self.tagger = tagger
         self.classes = classes
@@ -77,6 +78,7 @@ class Line(object):
                 token = Token(token_value, token_index, token_classes, token_markup, None)
 
             self.tokens.append(token)
+            self.unaligned_tokens = self.tokens
 
 class FootnoteLine(Line):
 

@@ -2,6 +2,7 @@ import fnmatch
 import os
 import json
 
+from difference_set import AlignmentException
 from difference_text import DifferenceText, DifferenceTextJSONEncoder
 from difference_line import DifferenceLineJSONEncoder
 
@@ -49,10 +50,7 @@ class CollatedLines:
         """
 
         witness_value = self.witness(witness_id)
-        print witness_value
-
         witness_value['line'] = diff_line
-        print witness_value
 
     def witness(self, witness_id):
         """Retrieve the witness structure for any given ID
@@ -188,16 +186,6 @@ class Collation:
             for line_id, diff_line in diff.body.lines.iteritems():
                 diff_line.uri = uri_base + '/' + diff.other_text.id
 
-                print 'ID for the base line: '
-                print diff.base_text.id
-                print 'ID for the line: '
-                print diff.other_text.id
-
-                # print 'Structuring collated lines'
-                # print diff_line.base_line.value
-
-                # print diff_line.value
-
                 # self.body_line(line_id).witness(diff.base_text.id)['line'] = diff_line
                 base_witness = self.body_line(line_id).witness(diff.base_text.id)
                 base_witness['line'] = diff_line
@@ -216,10 +204,6 @@ class Collation:
                 # diff_line.uri = uri_base + '/' + diff.base_text.id
                 # collated_lines.witnesses.append(diff_line)
 
-                print 'Collated lines for ' + str(line_id)
-                print self.body[line_id].witnesses
-                for witness in self.body[line_id].witnesses:
-                    print witness['line']
 
     #
     def title_footnote_line(self, line_id):

@@ -1,3 +1,7 @@
 *~
 *pyc
 env
+tmp
+tests/fixtures/*
+*bak
+node_modules

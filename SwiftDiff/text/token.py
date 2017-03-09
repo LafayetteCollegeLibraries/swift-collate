@@ -1,4 +1,5 @@
 import re
+from string import punctuation
 import json
 
 class Token(object):
@@ -17,8 +18,17 @@ class Token(object):
         self.value = re.sub('8\.', '', self.value)
 
         self.pos = pos
+        self.normal_value = self.normalize_value()
 
-####
+    def normalize_value(self):
+
+        normal_value = self.value
+        normal_value = self.value.lower()
+
+        r = re.compile(r'[{0}]+'.format(re.escape(punctuation)))
+        normal_value = re.sub(r, '', normal_value)
+
+        return normal_value
 
 class TokenJSONEncoder(json.JSONEncoder):
     def default(self, obj):

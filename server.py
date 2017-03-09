@@ -142,13 +142,23 @@ class NotaBeneEncoder(object):
             if nota_bene:
                 endpoint = "/".join([self._url, source_id, transcript_id, 'encode'])
                 response = requests.post(endpoint, data=nota_bene)
-                tei_xml = response.text
             else:
                 endpoint = "/".join([self._url, 'encode'])
                 response = requests.post(endpoint, data={'transcript': transcript_id})
-                tei_xml = response.text
 
-            self.cache_set(transcript_id, tei_xml.encode('utf-8'))
+            response_body = response.text
+            print response_body
+            try:
+                tei_objs = json.loads(response_body)
+                tei = tei_objs.pop(0)
+                tei_xml = tei['tei']
+                tei_xml = tei_xml.encode('utf-8')
+
+                self.cache_set(transcript_id, tei_xml)
+            except Exception as ex:
+                # raise CollationException(str(ex) + traceback.format_exc())
+                print str(ex)
+                print traceback.format_exc()
             
         return tei_xml
 
@@ -190,7 +200,7 @@ from tornado_cors import CorsMixin
 
 from SwiftDiff import TextToken
 from SwiftDiff.text import Line, Text, TextJSONEncoder
-from SwiftDiff.collate import DifferenceText, Collation, CollationJSONEncoder, DifferenceTextJSONEncoder
+from SwiftDiff.collate import DifferenceText, Collation, CollationJSONEncoder, DifferenceTextJSONEncoder, AlignmentException
 from SwiftDiff.tokenize import Tokenizer, SwiftSentenceTokenizer
 
 import scss
@@ -236,6 +246,8 @@ define("debug", default=DEBUG, help="run in debug mode", type=bool)
 define("processes", default=max_workers, help="concurrency", type=int)
 define("secret", default=SECRET, help="secret for cookies")
 define("cache", default=True, help="caching", type=bool)
+
+clients = []
 
 class TokenModule(tornado.web.UIModule):
 
@@ -398,7 +410,7 @@ def compare(_args, update=False):
     
     return diff
 
-def collate_async(executor, base_text, witness_texts, poem_id, base_id, stream, stream_output, socket=True):
+def collate_async(executor, base_text, witness_texts, poem_id, base_id, stream, stream_messages, socket=True):
     """Collates a set of texts asynchronously
 
     :param executor: 
@@ -421,21 +433,29 @@ def collate_async(executor, base_text, witness_texts, poem_id, base_id, stream, 
         for base_text, other_text in diff_args:
 
             if socket:
-                stream_output += "<div>Comparing " + other_text.id + " to " + base_text.id + "...</div>"
-                stream.write_message(stream_output)
+                #stream_output += "<div>Comparing " + other_text.id + " to " + base_text.id + "...</div>"
+                #stream.write_message(stream_output)
+                stream_messages.append("Comparing " + other_text.id + " to " + base_text.id + "...")
+                stream.write_message(json.dumps({'status': "\n".join(stream_messages)}))
 
         diff_texts = executor.map( compare, diff_args )
 
         # Log to stream
-        for base_text, other_text in diff_args:
-            if socket:
-                stream_output += "<div>Collating " + other_text.id + "...</div>"
-                stream.write_message(stream_output)
+#        for base_text, other_text in diff_args:
+#            if socket:
+                #stream_output += "<div>Collating " + other_text.id + "...</div>"
+                #stream.write_message(stream_output)
+#                stream_messages.append("Collating " + other_text.id + "...")
+#                stream.write_message(json.dumps({'status': "\n".join(stream_messages)}))
 
-        # result = Collation(poem_id, base_text, diffs, tei_dir_path, uri_base='/transcripts')
         base_diff_text = DifferenceText(base_text, [], SwiftSentenceTokenizer)
 
         for diff_text in diff_texts:
+            if socket:
+                diff_text_ids = map(lambda other_text: other_text.id, diff_text.other_texts)
+                stream_messages.append("Collating " + ",".join(diff_text_ids) + "...")
+                stream.write_message(json.dumps({'status': "\n".join(stream_messages)}))
+
             base_diff_text.merge(diff_text)
 
         result = base_diff_text
@@ -626,6 +646,22 @@ class TaggerFactory:
             except Exception as tagger_ex:
                 raise Exception("Could not load the selected part-of-speech tagger %s" % tagger_ex)
 
+class TranscriptException(Exception):
+
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
+class CollationException(Exception):
+
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
 class BaseCollateHandler(object):
 
     def load(self):
@@ -644,18 +680,20 @@ class BaseCollateHandler(object):
         self.base_doc = base_docs.pop()
 
         if self.base_doc is None:
-            raise Exception("Failed to retrieve the TEI-XML Document for " + self.base_id)
+            raise TranscriptException("Failed to retrieve the TEI-XML Document for " + self.base_id)
 
         # Structure the base and witness values
         base_values = { 'node': self.base_doc, 'id': self.base_id }
 
         docs = []
+        print self.transcript_ids
         for transcript_id in self.transcript_ids:
 
             transcript = nota_bene_encoder.transcript('001A', transcript_id)
-            transcript = transcript.replace('<?xml version="1.0" encoding="utf-8"?>', '')
+            if transcript is not None:
+                transcript = transcript.replace('<?xml version="1.0" encoding="utf-8"?>', '')
 
-            docs.append(TeiParser.parse(transcript))
+                docs.append(TeiParser.parse(transcript))
 
         for node, witness_id in zip(docs, self.transcript_ids):
             # Ensure that Nodes which could not be parsed are logged as server errors
@@ -667,11 +705,6 @@ class BaseCollateHandler(object):
                 logging.warn("Failed to parse the XML for the transcript %s", witness_id)
 
             self.variant_texts.append( witness_values )
-
-        try:
-            pass
-        except Exception as loadEx:
-            pass
 
         # Update the response body
 
@@ -706,20 +739,43 @@ class BaseCollateHandler(object):
     def collate(self):
         try:
             collation = collate_async(self.executor, self.base_text, self.witness_texts, self.poem_id, self.base_id, None, None, False)
+            # collation.collate()
+            for diff_set in collation.body:
+                
+                for line in diff_set.variant_lines:
+                    # print map(lambda token: token, line.tokens)
+                    pass
 
             results = DifferenceTextJSONEncoder().encode(collation)
 
             self.response_body = results
-        except Exception as collateEx:
-            raise Exception("Could not collate: " + str(collateEx) + traceback.format_exc())
+
+        except AlignmentException as alignEx:
+            print "Failed to align: " + alignEx
+        except Exception as ex:
+            raise CollationException(str(ex) + traceback.format_exc())
 
 class CollateHandler(CorsMixin, tornado.web.RequestHandler, BaseCollateHandler):
     CORS_ORIGIN = '*'
     CORS_HEADERS = 'Content-Type'
 
+    def send_error(self, status_code=500, **kwargs):
+
+        if self.request.headers.get('Accept') == 'application/json':
+            self.clear()
+            self.set_header('Content-Type', 'application/json')
+
+            reason = kwargs.get('reason')
+            self.set_status(status_code)
+            self.finish(json.dumps({'message': reason}))
+        else:
+            super(CollateHandler, self).send_error(self, status_code, **kwargs)
+
+    @tornado.web.asynchronous
     def post(self):
 
         if self.request.headers.get('Accept') == 'application/json':
+            self.set_header('Content-Type', 'application/json')
             self.json_args = json.loads(self.request.body)
 
             self.poem_id = self.json_args.get('poemId', None)
@@ -739,42 +795,205 @@ class CollateHandler(CorsMixin, tornado.web.RequestHandler, BaseCollateHandler):
             # Load the documents
             self.base_id = base_text
 
-            self.load()
-            self.tokenize()
-            self.collate()
-
-            self.set_header('Content-Type', 'application/json')
-            self.write(self.response_body)
+            try:
+                self.load()
+                self.tokenize()
+                self.collate()
+                self.write(self.response_body)
+            except CollationException as collateEx:
+                print "Failed to collate: " + str(collateEx)
+                self.write(self.response_body)
+            except Exception as ex:
+                print "Failed to collate: " + str(ex) + str(traceback.format_exc())
+                self.send_error(500, reason = json.dumps(str(ex)))
         else:
-            self.write({'status': 'error'})
+            self.send_error(500, reason = json.dumps("Content-Type not supported"))
 
 
+from tornado.log import gen_log, access_log
 class CollateSocketHandler(tornado.websocket.WebSocketHandler, BaseCollateHandler):
-    executor = None # Work-around
 
-    # Here, the polling takes place between the thread and server
-    def open(self):
-        self.output = "<div>Ready to start the collation</div>"
-        self.write_message(self.output)
+    def initialize(self):
+        self.messages = []
 
-    # Overridden to support the legacy interface
+    def log(self, message):
+        self.messages.append(message)
+        self.write_message(json.dumps({'status': "\n".join(self.messages)}))
+
+    def load(self):
+        # Parse the documents
+        self.variant_texts = []
+        message = 'ok'
+
+        base_transcript = nota_bene_encoder.transcript('001A', self.base_id)
+
+        # Work-around for lxml2
+        # <?xml version="1.0" encoding="utf-8"?>
+        base_transcript = base_transcript.replace('<?xml version="1.0" encoding="utf-8"?>', '')
+
+        base_docs = map(TeiParser.parse, [base_transcript])
+        self.base_doc = base_docs.pop()
+
+        if self.base_doc is None:
+            # raise TranscriptException("Failed to retrieve the TEI-XML Document for " + self.base_id)
+            # self.client.write_message("Failed to retrieve the TEI-XML Document for " + self.base_id)
+            self.log("Failed to retrieve the TEI-XML Document for the base text " + self.base_id)
+        else:
+            self.log("Retrieved the TEI-XML Document for the base text " + self.base_id)
+
+        # Structure the base and witness values
+        base_values = { 'node': self.base_doc, 'id': self.base_id }
+
+        docs = []
+
+        for transcript_id in self.transcript_ids:
+
+            transcript = nota_bene_encoder.transcript('001A', transcript_id)
+            if transcript is not None:
+                transcript = transcript.replace('<?xml version="1.0" encoding="utf-8"?>', '')
+                docs.append(TeiParser.parse(transcript))
+                self.log("Retrieved the TEI-XML Document for the variant text " + transcript_id)
+            else:
+                self.log("Failed to retrieve the TEI-XML Document for the variant text " + transcript_id)
+
+        for node, witness_id in zip(docs, self.transcript_ids):
+            # Ensure that Nodes which could not be parsed are logged as server errors
+            # Resolves SPP-529
+            if node is not None:
+                witness_values = { 'node': node, 'id': witness_id, 'message': message }
+            else:
+                witness_values = { 'node': node, 'id': witness_id, 'message': 'Failed to parse the XML for the transcript ' + witness_id }
+                # logging.warn("Failed to parse the XML for the transcript %s", witness_id)
+                self.log("Failed to parse the XML for the transcript %s", witness_id)
+
+            self.variant_texts.append( witness_values )
+
+        # Update the response body
+
+        # self.response_body = map(lambda item: { 'node': etree.tostring(item['node']), 'id': item['id'], 'message': item['message'] }, self.variant_texts)
+        variants = []
+
+        for item in self.variant_texts:
+            if 'node' in item and item['node'] is not None:
+                variants.append({ 'node': etree.tostring(item['node']), 'id': item['id'], 'message': item['message'] })
+
+        # self.variants = variants
+        self.response_body = variants
+
+    def tokenize(self):
+
+        # Retrieve the base Text
+        self.base_text = Text(self.base_doc, self.base_id, self.tokenizer, self.tagger)
+        self.base_text.tokenize()
+
+        # Retrieve the variant Texts
+        #self.witness_texts = map(lambda witness: Text(witness['node'], witness['id'], self.tokenizer, self.tagger), self.variants)
+
+        # Filter for errors in the parsing of the XML Documents
+        self.witness_texts = []
+        for witness in self.variant_texts:
+            if 'node' in witness and witness['node'] is not None:
+                self.witness_texts.append( Text(witness['node'], witness['id'], self.tokenizer, self.tagger) )
+                self.log("Tokenizing the TEI-XML Document for the variant text " + witness['id'])
+
+        # Update the response body
+        self.response_body = map(lambda witness_text: TextJSONEncoder().encode(witness_text), self.witness_texts)
+
     def collate(self):
         try:
-            collation = collate_async(self.executor, self.base_text, self.witness_texts, self.poem_id, self.base_id, None, None, False)
+            collation = collate_async(self.executor, self.base_text, self.witness_texts, self.poem_id, self.base_id, self, self.messages, True)
+            # collation.collate()
+#            for diff_set in collation.body:                
+#                for line in diff_set.variant_lines:
+                    # print map(lambda token: token, line.tokens)
+#                    pass
 
-            # results = DifferenceTextJSONEncoder().encode(collation)
-            if self.mode == 'notaBene':
-                results = self.render_string("collate_nb.html", collation=collation)
-            elif self.mode == 'tei':
-                results = self.render_string("collate_tei.html", collation=collation)
-            else:
-                raise Exception("Could not collate using the mode: " + self.mode)
+            results = DifferenceTextJSONEncoder().encode(collation)
 
             self.response_body = results
-        except Exception as collateEx:
-            raise Exception("Could not collate: " + str(collateEx) + traceback.format_exc())
+            self.log("Collation completed")
+
+        except AlignmentException as alignEx:
+#            print "Failed to align: " + alignEx
+            self.log("Failed to align: " + alignEx)
+
+        except Exception as ex:
+            raise CollationException(str(ex) + traceback.format_exc())
+            self.log("Failed to collate: " + str(ex) + traceback.format_exc())
+
+    @tornado.web.asynchronous
+    def get(self, *args, **kwargs):
+#        origin = self.request.headers.set("Origin", 'https://swift.stage.lafayette.edu/api/stream')
+#        super(CollateSocketHandler, self).get(self, *args, **kwargs)
+        self.open_args = args
+        self.open_kwargs = kwargs
+
+        # Upgrade header should be present and should be equal to WebSocket
+        if self.request.headers.get("Upgrade", "").lower() != 'websocket':
+            self.set_status(400)
+            log_msg = "Can \"Upgrade\" only to \"WebSocket\"."
+            self.finish(log_msg)
+            gen_log.debug(log_msg)
+            return
+
+        # Connection header should be upgrade.
+        # Some proxy servers/load balancers
+        # might mess with it.
+        headers = self.request.headers
+        connection = map(lambda s: s.strip().lower(),
+                         headers.get("Connection", "").split(","))
+        if 'upgrade' not in connection:
+            self.set_status(400)
+            log_msg = "\"Connection\" must be \"Upgrade\"."
+            self.finish(log_msg)
+            gen_log.debug(log_msg)
+            return
+
+        # Handle WebSocket Origin naming convention differences
+        # The difference between version 8 and 13 is that in 8 the
+        # client sends a "Sec-Websocket-Origin" header and in 13 it's
+        # simply "Origin".
+        if "Origin" in self.request.headers:
+            origin = self.request.headers.get("Origin")
+        else:
+            origin = self.request.headers.get("Sec-Websocket-Origin", None)
+
+        # If there was an origin header, check to make sure it matches
+        # according to check_origin. When the origin is None, we assume it
+        # did not come from a browser and that it can be passed on.
+#        if origin is not None and not self.check_origin(origin):
+#            self.set_status(403)
+#            log_msg = "Cross origin websockets not allowed"
+#            self.finish(log_msg)
+#            gen_log.debug(log_msg)
+#            return
+
+        self.stream = self.request.connection.detach()
+        self.stream.set_close_callback(self.on_connection_close)
+
+        self.ws_connection = self.get_websocket_protocol()
+        if self.ws_connection:
+            self.ws_connection.accept_connection()
+        else:
+            if not self.stream.closed():
+                self.stream.write(tornado.escape.utf8(
+                    "HTTP/1.1 426 Upgrade Required\r\n"
+                    "Sec-WebSocket-Version: 7, 8, 13\r\n\r\n"))
+                self.stream.close()
+
+    def open(self):
+        access_log.info("Collation client connected")
+        self.write_message(json.dumps({'status': "Collation engine ready"}))
+        if self not in clients:
+            clients.append(self)
 
     def on_message(self, message):
+        print message
+        if message == '9':
+            access_log.info("Collation client pinged")
+            return
+
+        self.messages = []
 
         # Parse the arguments from the message
         self.json_args = json.loads(message)
@@ -782,11 +1001,12 @@ class CollateSocketHandler(tornado.websocket.WebSocketHandler, BaseCollateHandle
         self.poem_id = self.json_args.get('poem', None)
 
         base_text = self.json_args.get('baseText', None)
-        base_text = base_text.keys().pop()
+#        base_text = base_text.keys().pop()
 
         # transcript_ids = self.json_args['variants'].keys()
-        self.transcript_ids = self.json_args.get('variants', {})
-        self.transcript_ids = self.transcript_ids.keys()
+ #       self.transcript_ids = self.json_args.get('variants', {})
+#        self.transcript_ids = self.transcript_ids.keys()
+        self.transcript_ids = self.json_args.get('variantTexts', {})
 
         # mode = self.json_args['mode']
         self.mode = self.json_args.get('mode', 'notaBene')
@@ -809,177 +1029,22 @@ class CollateSocketHandler(tornado.websocket.WebSocketHandler, BaseCollateHandle
             
         # Load the documents
         self.base_id = base_text
+        access_log.info("Collation request for %s using %s as the base text", self.poem_id, self.base_id)
 
         self.load()
         self.tokenize()
         self.collate()
 
         # self.set_header('Content-Type', 'application/json')
-        self.write_message(self.response_body)
-
-    def on_message_old(self, message):
-
-        # Condition on the message sent
-
-        # The request
-        
-        # 1. Request the document set, parse each document
-        # Return the message "Retrieving the documents"
-
-        # 2. Retrieve the titles
-        # Return the message "Collating the titles"
-        # Iterate
-
-        # Render a set of collated titles
-        # Iterate
-
-        # Tokenize for two lines
-        
-        ####
-        # Parse the arguments from the message
-        request = json.loads(message)
-
-        poem_id = request['poem']
-        # base_texts = request['baseText']
-        base_texts = request['baseText'].keys()
-        transcript_ids = request['variants'].keys()
-        mode = request['mode']
-        tokenizer_class_name = request['tokenizer']
-
-        module_name = tokenizer_module(tokenizer_class_name)
-        m = importlib.import_module(module_name)
-        tokenizer = getattr(m, tokenizer_class_name)
-
-        try:
-            module_name = tokenizer_module(tokenizer_class_name)
-            m = importlib.import_module(module_name)
-            tokenizer_class = getattr(m, tokenizer_class_name)
-        except:
-            raise "Could not load the selected tokenizer"
-
-        # If this is the Punkt tokenizer, it must first be trained
-#        if tokenizer_class_name == 'PunktSentenceTokenizer':
-
-#            tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
-
-#            try:
-#                tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
-#            except:
-#                raise "Could not train the selected tokenizer"
-#        else:
-
-#            tokenizer = tokenizer_class()
-        tokenizer = tokenizer_class
-
-        # Retrieve the POS tagger
-        tagger_class_name = request['tagger']
-
-        if tagger_class_name == 'disabled':
-            tagger = None
-        else:
-            try:
-                module_name = tagger_module(tagger_class_name)
-                m = importlib.import_module(module_name)
-                tagger_class = getattr(m, tagger_class_name)
-                tagger = tagger_class()
-            except Exception as tagger_ex:
-                raise Exception("Could not load the selected part-of-speech tagger %s" % tagger_ex)
-
-        # Load the documents
-        base_id = base_texts.pop()
-
-        self.write_message("<div>Loading the Documents...</div>")
-
-        try:
-            # Retrieve the URI's and docs for the variants
-            uris = doc_uris(poem_id, transcript_ids)
-        except Exception as load_variants_ex:
-            raise Exception("Could not load the variant transcripts %s" % load_variants_ex)
-
-        try:
-            # Retrieve the URI and doc for the base text
-            base_uris = doc_uris(poem_id, [base_id])
-        except Exception as load_base_ex:
-            raise Exception("Could not load the base transcript %s" % load_base_ex)
-
-        # Parse the documents
-        self.output = "<div>Parsing the Documents...</div>"
-        self.write_message(self.output)
-
-        try:
-            base_docs = map(resolve, base_uris)
-            base_ids = map(lambda path: path.split('/')[-1].split('.')[0], base_uris)
-            base_doc = base_docs.pop()
-            base_id = base_ids.pop()
-
-            # Structure the base and witness values
-            base_values = { 'node': base_doc, 'id': base_id }
-            
-            ids = map(lambda path: path.split('/')[-1].split('.')[0], uris)
-            docs = map(resolve, uris)
-
-            variant_texts = []
-            for node, witness_id in zip(docs, ids):
-
-                # Ensure that Nodes which could not be parsed are logged as server errors
-                # Resolves SPP-529
-                if node is not None:
-                    witness_values = { 'node': node, 'id': witness_id }
-                    variant_texts.append( witness_values )
-                else:
-                    self.output += "<div>Failed to parse the XML for the transcript " + witness_id + "</div>"
-                    self.write_message(self.output)
-                    logging.warn("Failed to parse the XML for the transcript %s", witness_id)
-                    
-        except Exception as loadEx:
-            self.output += "<div>Failed to load the documents: <span>" + str(loadEx) + "</span></div>"
-            self.write_message(self.output)
-            return
-
-        self.output += "<div>Tokenizing the Documents...</div>"
-        self.write_message(self.output)
-
-        try:
-            # Retrieve the base Text
-            base_text = Text(base_doc, base_id, tokenizer, tagger)
-            base_text.tokenize()
-
-            # Retrieve the variant Texts
-            witness_texts = map(lambda witness: Text(witness['node'], witness['id'], tokenizer, tagger), variant_texts)
-
-        except Exception as tokenizeEx:
-            self.output += "<div>Failed to tokenize the documents: <span>" + str(tokenizeEx) + "</span></div>"
-            self.write_message(self.output)
-            return
-
-        self.output += "<div>Collating the Documents...</div>"
-        self.write_message(self.output)
-
-        try:
-            collation = collate_async(self.executor, base_text, witness_texts, poem_id, base_id, self, self.output, True)
-
-            # Collate the witnesses in parallel
-            #        diff_args = map( lambda witness_text: (base_text, witness_text), witness_texts )
-            #        diffs = self.executor.map( compare, diff_args )
-
-            #        tei_dir_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xml', poem_id)
-            #        collation = Collation(base_text, diffs, tei_dir_path)
-
-            if mode == 'notaBene':
-                self.write_message(self.render_string("collate_nb.html", collation=collation))
-            elif mode == 'tei':
-                self.write_message(self.render_string("collate_tei.html", collation=collation))
-            else:
-                raise Exception("Could not collate using the mode: " + mode)
-
-
-        except Exception as collateEx:
-            self.output += "<div>Failed to collate the documents: <span>" + str(collateEx) + "</span></div>"
-            self.output += "<div><span>" + traceback.format_exc() + "</span></div>"
-            self.write_message(self.output)
+        # self.write_message(self.response_body)
+        self.write_message(json.dumps({'status': "\n".join(self.messages),'collation': self.response_body}))
+        # self.write_message({'status': json.dumps("\n".join(self.messages)),'collation': self.response_body})
 
     def on_close(self):
-        pass
+        if self in clients:
+            clients.remove(self)
+        access_log.info("Collation client disconnected")
+
 
 
 class TeiHandler(CorsMixin, tornado.web.RequestHandler):
